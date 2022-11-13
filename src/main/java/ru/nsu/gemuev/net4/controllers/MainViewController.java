@@ -3,8 +3,7 @@ package ru.nsu.gemuev.net4.controllers;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import javafx.fxml.FXML;
-import ru.nsu.gemuev.net4.controllers.events.ShowConfigViewEvent;
-import ru.nsu.gemuev.net4.controllers.events.ShowMainViewEvent;
+import ru.nsu.gemuev.net4.controllers.uievents.ShowConfigViewEvent;
 
 public class MainViewController {
 

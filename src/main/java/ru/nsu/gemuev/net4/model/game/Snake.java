@@ -1,4 +1,4 @@
-package ru.nsu.gemuev.net4.model;
+package ru.nsu.gemuev.net4.model.game;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

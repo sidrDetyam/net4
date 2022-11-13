@@ -10,9 +10,9 @@ import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
 import ru.nsu.gemuev.net4.Main;
-import ru.nsu.gemuev.net4.controllers.events.ShowConfigViewEvent;
-import ru.nsu.gemuev.net4.controllers.events.ShowGameViewEvent;
-import ru.nsu.gemuev.net4.controllers.events.ShowMainViewEvent;
+import ru.nsu.gemuev.net4.controllers.uievents.ShowConfigViewEvent;
+import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
+import ru.nsu.gemuev.net4.controllers.uievents.ShowMainViewEvent;
 import ru.nsu.gemuev.net4.util.DIContainer;
 
 import java.io.IOException;

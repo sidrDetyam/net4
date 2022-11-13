@@ -4,10 +4,18 @@ import com.google.common.eventbus.EventBus;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import lombok.SneakyThrows;
 import ru.nsu.gemuev.net4.controllers.ConfigViewController;
 import ru.nsu.gemuev.net4.controllers.GameViewController;
 import ru.nsu.gemuev.net4.controllers.MainViewController;
 import ru.nsu.gemuev.net4.controllers.SceneManager;
+import ru.nsu.gemuev.net4.net.MulticastReceiver;
+import ru.nsu.gemuev.net4.net.NetInterfaceChecker;
+import ru.nsu.gemuev.net4.net.UdpSenderReceiver;
+
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.SocketAddress;
 
 public class DIModule extends AbstractModule {
 
@@ -19,7 +27,7 @@ public class DIModule extends AbstractModule {
 
     @Provides
     @Singleton
-    SceneManager getSceneManager(EventBus eventBus){
+    SceneManager getSceneManager(EventBus eventBus) {
         var manager = new SceneManager();
         eventBus.register(manager);
         return manager;
@@ -47,5 +55,27 @@ public class DIModule extends AbstractModule {
         var controller = new ConfigViewController(eventBus);
         eventBus.register(controller);
         return controller;
+    }
+
+    @SneakyThrows
+    @Provides
+    @Singleton
+    MulticastReceiver getMulticastGameEventListener() {
+        NetworkInterface networkInterface = NetInterfaceChecker.findAnyUpNetworkInterface(false)
+                .orElse(NetworkInterface.getByName("loopback"));
+        final int port = 9193;
+        SocketAddress socketAddress = new InetSocketAddress("239.192.0.4", port);
+
+        return new MulticastReceiver(
+                socketAddress,
+                networkInterface,
+                port);
+    }
+
+    @Provides
+    @SneakyThrows
+    @Singleton
+    UdpSenderReceiver getUdpSenderReceiver(){
+        return new UdpSenderReceiver();
     }
 }
