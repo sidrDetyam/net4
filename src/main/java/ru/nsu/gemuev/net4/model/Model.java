@@ -1,11 +1,18 @@
 package ru.nsu.gemuev.net4.model;
 
 import com.google.inject.Inject;
+import ru.nsu.gemuev.net4.SnakesProto;
 import ru.nsu.gemuev.net4.model.gameevents.GameEventHandler;
 import ru.nsu.gemuev.net4.net.MulticastReceiver;
 import ru.nsu.gemuev.net4.net.UdpSenderReceiver;
 
+import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class Model {
 

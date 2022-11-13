@@ -12,7 +12,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.util.Arrays;
 
 @Log4j2
 public class UdpSenderReceiver implements GameMessageSender, GameMessageReceiver, Closeable {
@@ -31,11 +30,10 @@ public class UdpSenderReceiver implements GameMessageSender, GameMessageReceiver
     }
 
     @Override
-    public SnakesProto.GameMessage receiveGameMessage(byte[] buffer) throws IOException {
+    public DatagramPacket receiveGameMessage(byte[] buffer) throws IOException {
         DatagramPacket datagram = new DatagramPacket(buffer, buffer.length);
         datagramSocket.receive(datagram);
-        var data = Arrays.copyOf(datagram.getData(), datagram.getLength());
-        return SnakesProto.GameMessage.parseFrom(data);
+        return datagram;
     }
 
     @Override
