@@ -34,13 +34,13 @@ public class SceneManager {
 
     public SceneManager() {
         try {
-            gameScene = new Scene(loadFXML("game_view.fxml"), 600, 400);
+            gameScene = new Scene(loadFXML("game_view.fxml"), 800, 800);
             mainScene = new Scene(loadFXML("main_view.fxml"), 600, 400);
             configScene = new Scene(loadFXML("config_view.fxml"), 600, 400);
 
         } catch (Throwable e) {
-            log.error("Ui init fail " + e.getMessage());
-            throw new RuntimeException("Ui init fail"  + e.getMessage());
+            log.error("Ui init fail " + e);
+            throw new RuntimeException("Ui init fail"  + e);
         }
     }
 

@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="ru.nsu.gemuev.net4.controllers.ConfigViewController"
-            prefHeight="400.0" prefWidth="600.0">
+<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.nsu.gemuev.net4.controllers.ConfigViewController">
 
+   <TextField fx:id="width" layoutX="215.0" layoutY="48.0" text="40"/>
+   <TextField fx:id="height" layoutX="216.0" layoutY="89.0" text="30"/>
+   <TextField fx:id="foodStatic" layoutX="217.0" layoutY="134.0" text="1"/>
+   <TextField fx:id="delay" layoutX="218.0" layoutY="175.0" text="1000"/>
+   <Button layoutX="263.0" layoutY="233.0" mnemonicParsing="false" onAction="#onStartGameClick" text="Start game"/>
+   <Button layoutX="280.0" layoutY="273.0" mnemonicParsing="false" onAction="#onBackClick" text="Back"/>
 </AnchorPane>
