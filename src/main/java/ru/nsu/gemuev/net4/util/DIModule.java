@@ -5,10 +5,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import lombok.SneakyThrows;
-import ru.nsu.gemuev.net4.controllers.ConfigViewController;
-import ru.nsu.gemuev.net4.controllers.GameViewController;
-import ru.nsu.gemuev.net4.controllers.MainViewController;
-import ru.nsu.gemuev.net4.controllers.SceneManager;
+import ru.nsu.gemuev.net4.controllers.*;
+import ru.nsu.gemuev.net4.model.Model;
 import ru.nsu.gemuev.net4.net.MulticastReceiver;
 import ru.nsu.gemuev.net4.net.NetInterfaceChecker;
 import ru.nsu.gemuev.net4.net.UdpSenderReceiver;
@@ -43,16 +41,32 @@ public class DIModule extends AbstractModule {
 
     @Provides
     @Singleton
-    GameViewController getGameViewController(EventBus eventBus) {
-        var controller = new GameViewController(eventBus);
+    GameViewController getGameViewController(EventBus eventBus, Model model) {
+        var controller = new GameViewController(eventBus, model);
+        eventBus.register(controller);
+        return controller;
+    }
+
+
+    @Provides
+    @Singleton
+    @SneakyThrows
+    Model getModel(MulticastReceiver multicastReceiver, UdpSenderReceiver udpSenderReceiver){
+        return new Model(multicastReceiver, udpSenderReceiver);
+    }
+
+    @Provides
+    @Singleton
+    ConfigViewController getConfigViewController(EventBus eventBus, Model model) {
+        var controller = new ConfigViewController(eventBus, model);
         eventBus.register(controller);
         return controller;
     }
 
     @Provides
     @Singleton
-    ConfigViewController getConfigViewController(EventBus eventBus) {
-        var controller = new ConfigViewController(eventBus);
+    GamesListViewController getGamesListViewController(EventBus eventBus){
+        var controller = new GamesListViewController(eventBus);
         eventBus.register(controller);
         return controller;
     }

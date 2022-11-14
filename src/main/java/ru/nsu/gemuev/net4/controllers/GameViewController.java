@@ -13,6 +13,7 @@ import javafx.scene.paint.Color;
 import lombok.extern.log4j.Log4j2;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowConfigViewEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
+import ru.nsu.gemuev.net4.model.Model;
 import ru.nsu.gemuev.net4.model.game.Game;
 import ru.nsu.gemuev.net4.model.game.Snake;
 
@@ -39,11 +40,14 @@ public class GameViewController implements Initializable {
     private Game game;
     private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
+    private final Model model;
+
     @Inject
-    public GameViewController(EventBus eventBus){
+    public GameViewController(EventBus eventBus, Model model){
         this.eventBus = eventBus;
-        game = new Game(ROWS, COLS, 1);
-        scheduler.scheduleAtFixedRate(this::nextState, 0, 200, TimeUnit.MILLISECONDS);
+        this.model = model;
+        //game = new Game(ROWS, COLS, 3);// model.getGame();
+        //scheduler.scheduleAtFixedRate(this::nextState, 0, 200, TimeUnit.MILLISECONDS);
     }
 
     @FXML
@@ -65,14 +69,14 @@ public class GameViewController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        drawBackground();
+        //drawBackground();
     }
 
     @Subscribe
     public void onGameEvent(ShowGameViewEvent __){
         //scheduler.shutdown();
         Platform.runLater(()-> {
-            game = new Game(ROWS, COLS, 1);
+            //game = model.getGame();
         });
     }
 

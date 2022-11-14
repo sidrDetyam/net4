@@ -25,6 +25,7 @@ public class SceneManager {
     private final Scene mainScene;
     private final Scene configScene;
     private final Scene gameScene;
+    private final Scene gamesListScene;
 
     private static Parent loadFXML(@NonNull String name) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource(name));
@@ -37,6 +38,7 @@ public class SceneManager {
             gameScene = new Scene(loadFXML("game_view.fxml"), 800, 800);
             mainScene = new Scene(loadFXML("main_view.fxml"), 600, 400);
             configScene = new Scene(loadFXML("config_view.fxml"), 600, 400);
+            gamesListScene = new Scene(loadFXML("game_list_view.fxml"), 600, 400);
 
         } catch (Throwable e) {
             log.error("Ui init fail " + e);

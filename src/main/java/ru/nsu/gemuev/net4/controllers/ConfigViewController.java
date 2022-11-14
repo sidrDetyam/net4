@@ -6,10 +6,13 @@ import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowMainViewEvent;
+import ru.nsu.gemuev.net4.model.Model;
+import ru.nsu.gemuev.net4.model.game.Game;
 
 public class ConfigViewController {
 
     private final EventBus eventBus;
+    private final Model model;
 
     @FXML
     private TextField gameTitle;
@@ -23,13 +26,17 @@ public class ConfigViewController {
     private TextField delay;
 
     @Inject
-    public ConfigViewController(EventBus eventBus){
+    public ConfigViewController(EventBus eventBus, Model model){
         this.eventBus = eventBus;
+        this.model = model;
     }
 
     @FXML
     protected void onStartGameClick(){
-        eventBus.post(new ShowGameViewEvent());
+        var game = new Game(20, 20, 3);
+        //model.newGame(game);
+        System.out.println("here");
+        //eventBus.post(new ShowGameViewEvent());
     }
 
     @FXML

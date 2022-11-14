@@ -1,6 +1,7 @@
 package ru.nsu.gemuev.net4.model.game;
 
 import lombok.Data;
+import ru.nsu.gemuev.net4.model.gamemodel.Cell;
 
 @Data
 public class Game {

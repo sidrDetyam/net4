@@ -2,16 +2,13 @@ package ru.nsu.gemuev.net4.model.game;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import ru.nsu.gemuev.net4.model.gamemodel.Direction;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Data
 public class Snake {
-
-    public enum Direction{
-        UP, DOWN, LEFT, RIGHT
-    }
 
     @Data
     @AllArgsConstructor

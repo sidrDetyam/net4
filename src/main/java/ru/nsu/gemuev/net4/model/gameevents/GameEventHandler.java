@@ -16,6 +16,6 @@ public class GameEventHandler{
     }
 
     public void handle(@NonNull SnakesProto.GameMessage gameMessage, @NonNull InetAddress inetAddress, int port){
-        System.out.println("not impl! " + inetAddress + " " + port);
+        System.out.println(gameMessage.toString() + " " + inetAddress + " " + port);
     }
 }
