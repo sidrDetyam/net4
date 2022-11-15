@@ -24,8 +24,6 @@ module ru.nsu.gemuev.net4 {
     exports ru.nsu.gemuev.net4.model;
     exports ru.nsu.gemuev.net4.model.game;
     exports ru.nsu.gemuev.net4.net;
-    exports ru.nsu.gemuev.net4.model.gamemodel;
-    opens ru.nsu.gemuev.net4.model.gamemodel;
-    exports ru.nsu.gemuev.net4.model.gamemodel.snake;
-    opens ru.nsu.gemuev.net4.model.gamemodel.snake;
+    opens ru.nsu.gemuev.net4.model.game;
+    exports ru.nsu.gemuev.net4.model.gameevents;
 }

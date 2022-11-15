@@ -1,58 +1,75 @@
 package ru.nsu.gemuev.net4.model.game;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
-import ru.nsu.gemuev.net4.model.gamemodel.Direction;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
 public class Snake {
+    private final List<SnakeSegment> body = new ArrayList<>();
+    //TODO А должна ли змейка знать размер поля?
+    private final int sizeX;
+    private final int sizeY;
+    @Getter
+    private final int playerId;
+    @Getter @Setter
+    private SnakeState snakeState;
 
-    @Data
-    @AllArgsConstructor
-    public static class Coordinate{
-        private int x;
-        private int y;
+    public List<SnakeSegment> getBody(){
+        return List.copyOf(body);
     }
 
-    @Data
+    @Getter
     @AllArgsConstructor
     public class SnakeSegment{
         private Direction direction;
         private Coordinate coordinate;
 
-        public void forward(){
-            switch (direction) {
-                case UP -> coordinate.setY((coordinate.getY() + sizeY - 1) % sizeY);
-                case DOWN -> coordinate.setY((coordinate.getY() + 1) % sizeY);
-                case LEFT -> coordinate.setX((coordinate.getX() + sizeX - 1) % sizeX);
-                case RIGHT -> coordinate.setX((coordinate.getX() + 1) % sizeX);
-            }
+        private void forward(){
+            coordinate = direction.shift(coordinate, sizeX, sizeY);
         }
     }
 
-    private final List<SnakeSegment> body;
-    private final int sizeX;
-    private final int sizeY;
-
-    public Snake(int sizeX, int sizeY){
+    public Snake(int sizeX, int sizeY,
+                 Direction headDirection, @NonNull Coordinate headCoordinate,
+                 int playerId){
         this.sizeX = sizeX;
         this.sizeY = sizeY;
+        this.playerId = playerId;
+        body.add(new SnakeSegment(headDirection, headCoordinate));
+        snakeState = SnakeState.ALIVE;
+    }
 
-        body = new ArrayList<>();
-        for(int i=0; i<3; ++i) {
-            body.add(new SnakeSegment(Direction.RIGHT, new Coordinate(sizeX/2-i, sizeY/2)));
-        }
+    public void addSegment(Direction direction){
+        var lastSegment = body.get(body.size()-1);
+        var coord = direction.shift(lastSegment.coordinate, sizeX, sizeY);
+        body.add(new SnakeSegment(direction.opposite(), coord));
     }
 
     public void forward(){
-        for(var seg : body){
-            seg.forward();
+        for(var segment : body){
+            segment.forward();
         }
         for(int i=body.size()-1; i>0; --i){
-            body.get(i).setDirection(body.get(i-1).getDirection());
+            body.get(i).direction = (body.get(i-1).getDirection());
         }
+    }
+
+    public void grow(){
+        addSegment(body.get(body.size()-1).getDirection().opposite());
+    }
+
+    public void setHeadDirection(Direction newDirection){
+        var head = body.get(0);
+        if(head.direction != newDirection.opposite() && snakeState != SnakeState.ZOMBIE){
+            head.direction = newDirection;
+        }
+    }
+
+    public Coordinate getHeadCoordinate(){
+        return body.get(0).getCoordinate();
     }
 }

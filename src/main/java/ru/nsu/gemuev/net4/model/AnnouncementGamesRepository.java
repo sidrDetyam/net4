@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 public class AnnouncementGamesRepository {
 
     private final Map<HostAddress, AnnGame> repository = new HashMap<>();
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private static final long TTL = 3000;
 
     private final EventBus eventBus;
@@ -65,6 +64,7 @@ public class AnnouncementGamesRepository {
     @Inject
     public AnnouncementGamesRepository(EventBus eventBus){
         this.eventBus = eventBus;
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         scheduler.scheduleAtFixedRate(this::deleteExpiredGames, TTL, TTL, TimeUnit.MILLISECONDS);
     }
 }
