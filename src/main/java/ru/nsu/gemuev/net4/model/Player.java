@@ -1,11 +1,13 @@
 package ru.nsu.gemuev.net4.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NonNull;
 
 import java.net.InetAddress;
 
 @Data
+@AllArgsConstructor
 public class Player {
     private final String name;
     private final int id;

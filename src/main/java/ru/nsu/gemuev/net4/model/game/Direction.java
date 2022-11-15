@@ -20,6 +20,15 @@ public enum Direction {
                 (coordinate.y() + shiftY[index] + sizeY) % sizeY);
     }
 
+    public static Direction fromShift(@NonNull Coordinate coordinate) {
+        if (coordinate.x() == 0 && coordinate.y() == -1) return UP;
+        if (coordinate.x() == 1 && coordinate.y() ==  0) return RIGHT;
+        if (coordinate.x() == 0 && coordinate.y() ==  1) return DOWN;
+        if (coordinate.x() == -1 && coordinate.y() == 0) return LEFT;
+
+        throw new IllegalArgumentException("Incorrect shift " + coordinate);
+    }
+
     public Direction opposite() {
         return switch (this) {
             case DOWN -> UP;

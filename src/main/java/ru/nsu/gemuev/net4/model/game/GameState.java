@@ -19,10 +19,12 @@ public class GameState {
 
     public GameState(@NonNull GameConfig gameConfig,
                      @NonNull Collection<Snake> snakes,
-                     @NonNull Collection<Coordinate> foods){
+                     @NonNull Collection<Coordinate> foods,
+                     int stateOrder){
         this.snakes.addAll(snakes);
         this.foods.addAll(foods);
         this.gameConfig = gameConfig;
+        this.stateOrder = stateOrder;
     }
 
     public GameState(@NonNull GameConfig gameConfig){
@@ -46,7 +48,7 @@ public class GameState {
     public Cell[][] fieldPresentation() {
         var field = new Cell[gameConfig.width()][gameConfig.height()];
         for (int i = 0; i < gameConfig.width(); ++i) {
-            for (int j = 0; j < gameConfig.height(); ++i) {
+            for (int j = 0; j < gameConfig.height(); ++j) {
                 field[i][j] = Cell.FREE;
             }
         }

@@ -7,7 +7,7 @@ import javafx.scene.control.TextField;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowMainViewEvent;
 import ru.nsu.gemuev.net4.model.Model;
-import ru.nsu.gemuev.net4.model.game.Game;
+import ru.nsu.gemuev.net4.model.game.GameConfig;
 
 public class ConfigViewController {
 
@@ -33,10 +33,13 @@ public class ConfigViewController {
 
     @FXML
     protected void onStartGameClick(){
-        var game = new Game(20, 20, 3);
-        //model.newGame(game);
-        System.out.println("here");
-        //eventBus.post(new ShowGameViewEvent());
+        GameConfig gameConfig = new GameConfig(
+                Integer.parseInt(width.getText()),
+                Integer.parseInt(height.getText()),
+                Integer.parseInt(foodStatic.getText()));
+
+        model.newGame(gameConfig);
+        eventBus.post(new ShowGameViewEvent());
     }
 
     @FXML
