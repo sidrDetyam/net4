@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 public class AnnouncementGamesRepository {
 
+    @Getter
     private final Map<HostAddress, AnnGame> repository = new HashMap<>();
     private static final long TTL = 3000;
 
@@ -38,7 +39,7 @@ public class AnnouncementGamesRepository {
         }
     }
 
-    private synchronized List<SnakesProto.GameAnnouncement> getListOfGames(){
+    public synchronized List<SnakesProto.GameAnnouncement> getListOfGames(){
         return repository
                 .values()
                 .stream()

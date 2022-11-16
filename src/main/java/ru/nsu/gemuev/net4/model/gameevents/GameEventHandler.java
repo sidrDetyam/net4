@@ -7,6 +7,7 @@ import ru.nsu.gemuev.net4.mappers.DirectionMapper;
 import ru.nsu.gemuev.net4.mappers.PlayerMapper;
 import ru.nsu.gemuev.net4.mappers.StateMapper;
 import ru.nsu.gemuev.net4.model.Model;
+import ru.nsu.gemuev.net4.model.NodeRole;
 import ru.nsu.gemuev.net4.model.Player;
 import ru.nsu.gemuev.net4.model.game.GameState;
 
@@ -24,11 +25,16 @@ public class GameEventHandler{
 
     public void handle(@NonNull SnakesProto.GameMessage gameMessage, @NonNull InetAddress inetAddress, int port){
 
+        log.info(gameMessage);
+
         var playersRep = model.getPlayersRepository();
         final int senderId = gameMessage.getSenderId();
         playersRep.updateTll(senderId);
 
         if(gameMessage.hasSteer()){
+            if(model.getMyRole() != NodeRole.MASTER){
+                return;
+            }
             var steer = gameMessage.getSteer();
             model.getGameState().getSnakes()
                     .stream()
@@ -39,9 +45,12 @@ public class GameEventHandler{
         }
 
         if(gameMessage.hasState()){
+            if(model.getMyRole() == NodeRole.MASTER){
+                return;
+            }
             var dtoState = gameMessage.getState().getState();
             GameState state = StateMapper.dto2Model(dtoState, model.getGameConfig());
-            model.setGameState(state);
+            model.stateChanged(state);
 
             var players = new ArrayList<Player>();
             for(var dtoPlayer : dtoState.getPlayers().getPlayersList()){
@@ -57,6 +66,14 @@ public class GameEventHandler{
             for(var ann : announcements){
                 model.getGamesRepository().addGame(inetAddress, port, ann);
             }
+        }
+
+        if(gameMessage.hasJoin()){
+            model.playerJoin(inetAddress, port);
+        }
+
+        if(gameMessage.hasAck()){
+            model.joinGame(gameMessage.getReceiverId());
         }
 
         log.info("handler for this message isn`t impl " + gameMessage);

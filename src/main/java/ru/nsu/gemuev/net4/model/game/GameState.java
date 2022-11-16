@@ -43,6 +43,7 @@ public class GameState {
             int x = random.nextInt(gameConfig.width());
             int y = random.nextInt(gameConfig.height());
             if(field[x][y] == Cell.FREE){
+                field[x][y] = Cell.FOOD;
                 foods.add(new Coordinate(x, y));
                 ++i;
             }

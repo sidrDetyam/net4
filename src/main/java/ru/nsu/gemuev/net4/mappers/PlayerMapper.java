@@ -7,6 +7,7 @@ import ru.nsu.gemuev.net4.model.Player;
 
 import java.net.InetAddress;
 import java.time.Instant;
+import java.util.Collection;
 
 public class PlayerMapper {
 
@@ -33,8 +34,14 @@ public class PlayerMapper {
                 .setRole(NodeRoleMapper.model2Dto(modelPlayer.getPlayerRole()))
                 .setScore(modelPlayer.getScore());
         if(modelPlayer.getAddress() != null){
-            builder.setIpAddress(modelPlayer.getAddress().getHostName());
+            builder.setIpAddress(modelPlayer.getAddress().getHostAddress());
         }
         return builder.build();
+    }
+
+    public static SnakesProto.GamePlayers dtoPlayers(@NonNull Collection<Player> players){
+        return SnakesProto.GamePlayers.newBuilder()
+                .addAllPlayers(players.stream().map(PlayerMapper::model2Dto).toList())
+                .build();
     }
 }

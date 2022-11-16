@@ -4,8 +4,8 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane onKeyPressed="#onKeyPressed" prefHeight="750.0" prefWidth="750.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.nsu.gemuev.net4.controllers.GameViewController">
+<AnchorPane onKeyPressed="#onKeyPressed" prefHeight="550.0" prefWidth="650.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.nsu.gemuev.net4.controllers.GameViewController">
 
-   <Button layoutX="400.0" layoutY="725.0" mnemonicParsing="false" onAction="#onBackClicked" text="Button" />
-   <Canvas fx:id="canvas" height="700.0" layoutX="5.0" layoutY="5.0" width="700.0" />
+   <Button layoutX="300.0" layoutY="525.0" mnemonicParsing="false" onAction="#onBackClicked" text="Button" />
+   <Canvas fx:id="canvas" height="500.0" layoutX="5.0" layoutY="5.0" width="650.0" />
 </AnchorPane>

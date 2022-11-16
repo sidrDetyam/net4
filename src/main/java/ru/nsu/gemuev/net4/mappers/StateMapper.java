@@ -33,13 +33,10 @@ public class StateMapper {
 
     public static SnakesProto.GameState model2Dto(@NonNull GameState modelState,
                                                   @NonNull Collection<Player> modelPlayers){
-        var dtoPlayers = SnakesProto.GamePlayers.newBuilder()
-                .addAllPlayers(modelPlayers.stream().map(PlayerMapper::model2Dto).toList())
-                .build();
 
         return SnakesProto.GameState.newBuilder()
                 .setStateOrder(modelState.getStateOrder())
-                .setPlayers(dtoPlayers)
+                .setPlayers(PlayerMapper.dtoPlayers(modelPlayers))
                 .addAllFoods(modelState.getFoods().stream().map(CoordinateMapper::model2Dto).toList())
                 .addAllSnakes(modelState.getSnakes().stream().map(SnakeMapper::model2Dto).toList())
                 .build();

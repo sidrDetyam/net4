@@ -8,10 +8,8 @@ import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import ru.nsu.gemuev.net4.SnakesProto;
 import ru.nsu.gemuev.net4.controllers.uievents.GameStateChanged;
-import ru.nsu.gemuev.net4.mappers.DirectionMapper;
 import ru.nsu.gemuev.net4.mappers.GameConfigMapper;
 import ru.nsu.gemuev.net4.mappers.Message;
-import ru.nsu.gemuev.net4.mappers.PlayerMapper;
 import ru.nsu.gemuev.net4.model.game.Direction;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
 import ru.nsu.gemuev.net4.model.game.GameState;
@@ -22,9 +20,6 @@ import ru.nsu.gemuev.net4.util.DIContainer;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.time.Instant;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -56,7 +51,7 @@ public class Model {
     private final EventBus eventBus;
 
     @Inject
-    public Model(MulticastReceiver multicastReceiver, UdpSenderReceiver udpSenderReceiver){
+    public Model(MulticastReceiver multicastReceiver, UdpSenderReceiver udpSenderReceiver) {
         this.multicastReceiver = multicastReceiver;
         this.udpSenderReceiver = udpSenderReceiver;
 
@@ -81,99 +76,114 @@ public class Model {
     NodeRole myRole;
     private int myId;
 
+    private InetAddress masterAddress;
+    private int masterPort;
+
     private int id = 0;
-    private int nextId(){
+
+    private int nextId() {
         return id++;
     }
 
     private long msgSeq = 0;
-    private long nextMsgSeq(){
+
+    private long nextMsgSeq() {
         return msgSeq++;
     }
 
     private void send(@NonNull InetAddress address, int port, @NonNull SnakesProto.GameMessage msg){
-        
+        try {
+            udpSenderReceiver.sendGameMessage(address, port, msg);
+        } catch (IOException e) {
+            log.error(e);
+        }
     }
 
-    public synchronized void newGame(@NonNull GameConfig gameConfig){
+    private void send(@NonNull Player toPlayer, @NonNull SnakesProto.GameMessage msg) {
+        send(toPlayer.getAddress(), toPlayer.getPort(), msg);
+    }
+
+    public synchronized void newGame(@NonNull GameConfig gameConfig) {
         gameState = new GameState(gameConfig);
         myRole = NodeRole.MASTER;
         this.gameConfig = gameConfig;
         Player player = new Player("name", nextId(), null, 0, NodeRole.MASTER, 0, 0);
         playersRepository.updatePlayers(List.of(player));
+        gameState.addPlayer(player.getId());
         myId = player.getId();
         isGameStart = true;
     }
 
-    public synchronized void steer(@NonNull Direction direction){
-        if(myRole == NodeRole.MASTER){
+    public synchronized void steer(@NonNull Direction direction) {
+        if (myRole == NodeRole.MASTER) {
             gameState.getSnakes().stream()
                     .filter(snake -> snake.getPlayerId() == myId)
                     .findFirst()
                     .ifPresent(snake -> snake.setHeadDirection(direction));
-        }
-        else{
-            playersRepository.getPlayers().stream()
-                    .filter(player -> player.getPlayerRole() == NodeRole.MASTER)
-                    .findFirst()
-                    .ifPresent(player -> {
-                        try {
-                            udpSenderReceiver.sendGameMessage(player.getAddress(), player.getPort(),
-                                    Message.of(direction, myId, nextMsgSeq()));
-                        } catch (IOException e) {
-                            log.error(e);
-                        }
-                    });
+        } else {
+            send(masterAddress, masterPort, Message.of(direction, myId, nextMsgSeq()));
         }
     }
 
-    public synchronized void stopGame(){
+    public synchronized void stopGame() {
         isGameStart = false;
     }
 
-    public synchronized void nextState(){
-        if(isGameStart && myRole == NodeRole.MASTER){
+    public synchronized void nextState() {
+        if (isGameStart && myRole == NodeRole.MASTER) {
             gameState.nextState();
             eventBus.post(new GameStateChanged(gameState));
             playersRepository.getPlayers().forEach(player -> {
-                try{
-                    udpSenderReceiver.sendGameMessage(player.getAddress(), player.getPort(), );
-                }
-                catch (IOException e){
-                    log.error(e);
+                if (player.getPlayerRole() != NodeRole.MASTER) {
+                    send(player, Message.of(gameState, playersRepository.getPlayers(), nextMsgSeq()));
                 }
             });
         }
     }
 
-    public void announceGame() {
-        if (isGameStart && playersRepository.getNodeRole() == NodeRole.MASTER) {
-            var players = SnakesProto.GamePlayers.newBuilder();
-            for (var player : playersRepository.getPlayers()) {
-                players.addPlayers(PlayerMapper.model2Dto(player));
-            }
-            var game = SnakesProto.GameAnnouncement
-                    .newBuilder()
-                    .setGameName("test game")
-                    .setCanJoin(true)
-                    .setConfig(GameConfigMapper.model2Dto(gameConfig))
-                    .setPlayers(players.build())
-                    .build();
-            var message = SnakesProto.GameMessage.AnnouncementMsg
-                    .newBuilder()
-                    .addGames(game)
-                    .build();
-            var bruh = SnakesProto.GameMessage.newBuilder()
-                    .setAnnouncement(message)
-                    .setMsgSeq(0)
-                    .build();
-
-            try {
-                udpSenderReceiver.sendGameMessage(InetAddress.getByName("239.192.0.4"), 9193, bruh);
-            }
-            catch(Throwable e){
-                log.error(e);
-            }
+    @SneakyThrows
+    public synchronized void announceGame() {
+        if (isGameStart && myRole == NodeRole.MASTER) {
+            send(InetAddress.getByName("239.192.0.4"), 9193, Message.of(
+                    gameConfig,
+                    playersRepository.getPlayers(),
+                    "game name",
+                    true,
+                    nextMsgSeq()));
         }
+    }
+
+    public synchronized void joinGame_(){
+        gamesRepository.getRepository().entrySet().stream().findFirst().ifPresent(entry -> {
+            var host = entry.getKey();
+            var msg = Message.of(host.getGameName(), "xyu", NodeRole.NORMAL, nextMsgSeq());
+            try {
+                send(host.getInetAddress(), host.getPort(), msg);
+            }
+            catch (Throwable e){
+                e.printStackTrace();
+            }
+            gameConfig = GameConfigMapper.dto2Model(entry.getValue().getGame().getConfig());
+            masterAddress = host.getInetAddress();
+            masterPort = host.getPort();
+        });
+    }
+
+    public synchronized void joinGame(int id){
+        isGameStart = true;
+        myRole = NodeRole.NORMAL;
+        myId = id;
+    }
+
+    public synchronized void playerJoin(@NonNull InetAddress address, int port){
+        Player player = new Player("", nextId(), address, port, NodeRole.NORMAL, 0, 0);
+        playersRepository.newPlayer(player);
+        gameState.addPlayer(player.getId());
+        send(player, Message.of(player.getId(), nextMsgSeq()));
+    }
+
+    public synchronized void stateChanged(@NonNull GameState newState){
+        gameState = newState;
+        eventBus.post(new GameStateChanged(gameState));
     }
 }
