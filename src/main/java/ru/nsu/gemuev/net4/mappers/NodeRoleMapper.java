@@ -16,4 +16,13 @@ public class NodeRoleMapper {
             case DEPUTY -> NodeRole.DEPUTY;
         };
     }
+
+    public static SnakesProto.NodeRole model2Dto(@NonNull NodeRole modelRole){
+        return switch (modelRole) {
+            case MASTER -> SnakesProto.NodeRole.MASTER;
+            case NORMAL -> SnakesProto.NodeRole.NORMAL;
+            case VIEWER -> SnakesProto.NodeRole.VIEWER;
+            case DEPUTY -> SnakesProto.NodeRole.DEPUTY;
+        };
+    }
 }

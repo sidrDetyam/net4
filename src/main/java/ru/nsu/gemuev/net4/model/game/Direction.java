@@ -20,6 +20,10 @@ public enum Direction {
                 (coordinate.y() + shiftY[index] + sizeY) % sizeY);
     }
 
+    public Coordinate shift(){
+        return new Coordinate(shiftX[index], shiftY[index]);
+    }
+
     public static Direction fromShift(@NonNull Coordinate coordinate) {
         if (coordinate.x() == 0 && coordinate.y() == -1) return UP;
         if (coordinate.x() == 1 && coordinate.y() ==  0) return RIGHT;

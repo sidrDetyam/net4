@@ -43,12 +43,16 @@ public class GameViewController implements Initializable {
 
     @FXML
     protected void onKeyPressed(KeyEvent keyEvent) {
-        Direction d = Direction.UP;
+        Direction d = null;
         switch (keyEvent.getCode()){
             case W -> d = Direction.UP;
             case A -> d = Direction.LEFT;
             case S -> d = Direction.DOWN;
             case D -> d = Direction.RIGHT;
+        }
+
+        if(d != null){
+            model.steer(d);
         }
     }
 

@@ -22,6 +22,10 @@ public class Snake {
         return List.copyOf(body);
     }
 
+    public SnakeSegment getHead(){
+        return body.get(0);
+    }
+
     @Getter
     @AllArgsConstructor
     public class SnakeSegment{
@@ -64,9 +68,13 @@ public class Snake {
 
     public void setHeadDirection(Direction newDirection){
         var head = body.get(0);
-        if(head.direction != newDirection.opposite() && snakeState != SnakeState.ZOMBIE){
-            head.direction = newDirection;
+        if(body.size() > 1){
+            var neck = body.get(1);
+            if(neck.getDirection() == newDirection.opposite() || snakeState == SnakeState.ZOMBIE){
+                return;
+            }
         }
+        head.direction = newDirection;
     }
 
     public Coordinate getHeadCoordinate(){

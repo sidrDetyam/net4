@@ -12,6 +12,7 @@ import lombok.extern.log4j.Log4j2;
 import ru.nsu.gemuev.net4.Main;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowConfigViewEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
+import ru.nsu.gemuev.net4.controllers.uievents.ShowGamesList;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowMainViewEvent;
 import ru.nsu.gemuev.net4.util.DIContainer;
 
@@ -57,7 +58,12 @@ public class SceneManager {
     }
 
     @Subscribe
-    public void gameView(ShowGameViewEvent e){
+    public void showGameView(ShowGameViewEvent e){
         Platform.runLater(() -> stage.setScene(gameScene));
+    }
+
+    @Subscribe
+    public void showGamesList(ShowGamesList e){
+        Platform.runLater(() -> stage.setScene(gamesListScene));
     }
 }

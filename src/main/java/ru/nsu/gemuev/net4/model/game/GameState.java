@@ -17,6 +17,10 @@ public class GameState {
         return List.copyOf(snakes);
     }
 
+    public List<Coordinate> getFoods(){
+        return List.copyOf(foods);
+    }
+
     public GameState(@NonNull GameConfig gameConfig,
                      @NonNull Collection<Snake> snakes,
                      @NonNull Collection<Coordinate> foods,

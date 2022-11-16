@@ -11,4 +11,11 @@ public class CoordinateMapper {
     public static Coordinate dto2Model(@NonNull SnakesProto.GameState.Coord dtoCoord){
         return new Coordinate(dtoCoord.getX(), dtoCoord.getY());
     }
+
+    public static SnakesProto.GameState.Coord model2Dto(@NonNull Coordinate modelCoord){
+        return SnakesProto.GameState.Coord.newBuilder()
+                .setX(modelCoord.x())
+                .setY(modelCoord.y())
+                .build();
+    }
 }

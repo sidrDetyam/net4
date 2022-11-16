@@ -23,4 +23,18 @@ public class PlayerMapper {
                 dtoPlayer.getScore(),
                 Instant.now().toEpochMilli());
     }
+
+    public static SnakesProto.GamePlayer model2Dto(@NonNull Player modelPlayer){
+        var builder = SnakesProto.GamePlayer
+                .newBuilder()
+                .setName(modelPlayer.getName())
+                .setId(modelPlayer.getId())
+                .setPort(modelPlayer.getPort())
+                .setRole(NodeRoleMapper.model2Dto(modelPlayer.getPlayerRole()))
+                .setScore(modelPlayer.getScore());
+        if(modelPlayer.getAddress() != null){
+            builder.setIpAddress(modelPlayer.getAddress().getHostName());
+        }
+        return builder.build();
+    }
 }

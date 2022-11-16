@@ -4,6 +4,7 @@ import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import javafx.fxml.FXML;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowConfigViewEvent;
+import ru.nsu.gemuev.net4.controllers.uievents.ShowGamesList;
 
 public class MainViewController {
 
@@ -17,5 +18,10 @@ public class MainViewController {
     @FXML
     protected void onNewGameClick() {
         eventBus.post(new ShowConfigViewEvent());
+    }
+
+    @FXML
+    protected void onJoinClick(){
+        eventBus.post(new ShowGamesList());
     }
 }

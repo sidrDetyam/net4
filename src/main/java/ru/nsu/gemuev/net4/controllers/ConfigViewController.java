@@ -36,7 +36,8 @@ public class ConfigViewController {
         GameConfig gameConfig = new GameConfig(
                 Integer.parseInt(width.getText()),
                 Integer.parseInt(height.getText()),
-                Integer.parseInt(foodStatic.getText()));
+                Integer.parseInt(foodStatic.getText()),
+                Integer.parseInt(delay.getText()));
 
         model.newGame(gameConfig);
         eventBus.post(new ShowGameViewEvent());
