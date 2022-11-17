@@ -6,20 +6,22 @@ import lombok.Data;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
+import org.jetbrains.annotations.Range;
 import ru.nsu.gemuev.net4.SnakesProto;
 import ru.nsu.gemuev.net4.controllers.uievents.GameStateChanged;
-import ru.nsu.gemuev.net4.mappers.GameConfigMapper;
-import ru.nsu.gemuev.net4.mappers.Message;
+import ru.nsu.gemuev.net4.mappers.MessageMapper;
+import ru.nsu.gemuev.net4.model.communication.GameMessageConfirmingSender;
+import ru.nsu.gemuev.net4.model.communication.MessagesListener;
 import ru.nsu.gemuev.net4.model.game.Direction;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
 import ru.nsu.gemuev.net4.model.game.GameState;
-import ru.nsu.gemuev.net4.model.gameevents.GameEventHandler;
 import ru.nsu.gemuev.net4.net.MulticastReceiver;
 import ru.nsu.gemuev.net4.net.UdpSenderReceiver;
 import ru.nsu.gemuev.net4.util.DIContainer;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -38,6 +40,7 @@ public class Model {
     private final PlayersRepository playersRepository;
     private final AnnouncementGamesRepository gamesRepository;
 
+    private final GameMessageConfirmingSender gameMessageConfirmingSender;
 
     private Thread mThread;
     private Thread uThread;
@@ -64,6 +67,8 @@ public class Model {
         multicastListener = new MessagesListener(multicastReceiver, eventHandler);
         unicastListener = new MessagesListener(udpSenderReceiver, eventHandler);
 
+        gameMessageConfirmingSender = new GameMessageConfirmingSender(udpSenderReceiver);
+
         mThread = new Thread(multicastListener);
         uThread = new Thread(unicastListener);
         mThread.start();
@@ -71,6 +76,7 @@ public class Model {
 
         scheduler.scheduleAtFixedRate(this::nextState, 500, 100, TimeUnit.MILLISECONDS);
         scheduler.scheduleAtFixedRate(this::announceGame, 100, 1000, TimeUnit.MILLISECONDS);
+        scheduler.scheduleAtFixedRate(() -> gamesRepository.deleteExpiredGames(4000), 0, 1000, TimeUnit.MILLISECONDS);
     }
 
     NodeRole myRole;
@@ -91,7 +97,7 @@ public class Model {
         return msgSeq++;
     }
 
-    private void send(@NonNull InetAddress address, int port, @NonNull SnakesProto.GameMessage msg){
+    private void send(@NonNull InetAddress address, int port, @NonNull SnakesProto.GameMessage msg) {
         try {
             udpSenderReceiver.sendGameMessage(address, port, msg);
         } catch (IOException e) {
@@ -108,7 +114,7 @@ public class Model {
         myRole = NodeRole.MASTER;
         this.gameConfig = gameConfig;
         Player player = new Player("name", nextId(), null, 0, NodeRole.MASTER, 0, 0);
-        playersRepository.updatePlayers(List.of(player));
+        playersRepository.setPlayers(List.of(player));
         gameState.addPlayer(player.getId());
         myId = player.getId();
         isGameStart = true;
@@ -121,7 +127,7 @@ public class Model {
                     .findFirst()
                     .ifPresent(snake -> snake.setHeadDirection(direction));
         } else {
-            send(masterAddress, masterPort, Message.of(direction, myId, nextMsgSeq()));
+            send(masterAddress, masterPort, MessageMapper.of(direction, myId, nextMsgSeq()));
         }
     }
 
@@ -135,7 +141,7 @@ public class Model {
             eventBus.post(new GameStateChanged(gameState));
             playersRepository.getPlayers().forEach(player -> {
                 if (player.getPlayerRole() != NodeRole.MASTER) {
-                    send(player, Message.of(gameState, playersRepository.getPlayers(), nextMsgSeq()));
+                    send(player, MessageMapper.of(gameState, playersRepository.getPlayers(), nextMsgSeq()));
                 }
             });
         }
@@ -144,7 +150,7 @@ public class Model {
     @SneakyThrows
     public synchronized void announceGame() {
         if (isGameStart && myRole == NodeRole.MASTER) {
-            send(InetAddress.getByName("239.192.0.4"), 9193, Message.of(
+            send(InetAddress.getByName("239.192.0.4"), 9193, MessageMapper.of(
                     gameConfig,
                     playersRepository.getPlayers(),
                     "game name",
@@ -153,37 +159,59 @@ public class Model {
         }
     }
 
-    public synchronized void joinGame_(){
-        gamesRepository.getRepository().entrySet().stream().findFirst().ifPresent(entry -> {
-            var host = entry.getKey();
-            var msg = Message.of(host.getGameName(), "xyu", NodeRole.NORMAL, nextMsgSeq());
-            try {
-                send(host.getInetAddress(), host.getPort(), msg);
-            }
-            catch (Throwable e){
-                e.printStackTrace();
-            }
-            gameConfig = GameConfigMapper.dto2Model(entry.getValue().getGame().getConfig());
-            masterAddress = host.getInetAddress();
-            masterPort = host.getPort();
+    public synchronized void joinGame_(@NonNull String playerName) {
+        gamesRepository.getRepository().stream().findFirst().ifPresent(entry -> {
+            var msg = MessageMapper.of(entry.gameName(), playerName, NodeRole.NORMAL, nextMsgSeq());
+            send(entry.senderAddress(), entry.senderPort(), msg);
+            gameConfig = entry.gameConfig();
+            masterAddress = entry.senderAddress();
+            masterPort = entry.senderPort();
         });
     }
 
-    public synchronized void joinGame(int id){
+    public synchronized void joinGame(int id) {
         isGameStart = true;
         myRole = NodeRole.NORMAL;
         myId = id;
     }
 
-    public synchronized void playerJoin(@NonNull InetAddress address, int port){
-        Player player = new Player("", nextId(), address, port, NodeRole.NORMAL, 0, 0);
-        playersRepository.newPlayer(player);
-        gameState.addPlayer(player.getId());
-        send(player, Message.of(player.getId(), nextMsgSeq()));
-    }
-
-    public synchronized void stateChanged(@NonNull GameState newState){
+    public synchronized void stateChanged(@NonNull GameState newState) {
         gameState = newState;
         eventBus.post(new GameStateChanged(gameState));
+    }
+
+    //events
+
+    public synchronized void steerMessage(@NonNull Direction newDirection,
+                                          @NonNull InetAddress senderAddress,
+                                          @Range(from = 0, to = 65536) int senderPort){
+        var playerOpt = playersRepository.getPlayers().stream()
+                .filter(player -> player.getAddress().equals(senderAddress) && player.getPort() == senderPort)
+                .findAny();
+        if(!isGameStart || playerOpt.isEmpty() || myRole != NodeRole.MASTER){
+            return;
+        }
+        gameState.getSnakes().stream()
+                .filter(snake -> snake.getPlayerId() == playerOpt.get().getId())
+                .findAny()
+                .ifPresent(snake -> snake.setHeadDirection(newDirection));
+    }
+
+    public synchronized void stateMessage(@NonNull GameState newState,
+                                          @NonNull Collection<? extends Player> players,
+                                          @NonNull InetAddress senderAddress,
+                                          @Range(from = 0, to = 65536) int senderPort){
+        if(isGameStart && senderAddress.equals(masterAddress) && senderPort == masterPort) {
+            gameState = newState;
+            playersRepository.setPlayers(players);
+            eventBus.post(new GameStateChanged(newState));
+        }
+    }
+
+    public synchronized void playerJoin(@NonNull InetAddress address, int port) {
+        Player player = new Player("", nextId(), address, port, NodeRole.NORMAL, 0, 0);
+        playersRepository.addPlayer(player);
+        gameState.addPlayer(player.getId());
+        send(player, MessageMapper.of(player.getId(), nextMsgSeq()));
     }
 }

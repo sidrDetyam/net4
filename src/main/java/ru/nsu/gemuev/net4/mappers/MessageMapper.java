@@ -10,9 +10,9 @@ import ru.nsu.gemuev.net4.model.game.GameState;
 
 import java.util.Collection;
 
-public class Message {
+public class MessageMapper {
 
-    private Message(){}
+    private MessageMapper(){}
 
     public static SnakesProto.GameMessage of(@NonNull GameState gameState,
                                              @NonNull Collection<Player> players,
@@ -82,6 +82,12 @@ public class Message {
                 .setAck(SnakesProto.GameMessage.AckMsg.newBuilder().build())
                 .setMsgSeq(msgSeq)
                 .setReceiverId(receiverId)
+                .build();
+    }
+
+    public static SnakesProto.GameMessage ack(){
+        return SnakesProto.GameMessage.newBuilder()
+                .setAck(SnakesProto.GameMessage.AckMsg.newBuilder().build())
                 .build();
     }
 }

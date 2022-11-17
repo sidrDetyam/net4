@@ -8,6 +8,7 @@ import ru.nsu.gemuev.net4.model.Player;
 import java.net.InetAddress;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 
 public class PlayerMapper {
 
@@ -39,9 +40,14 @@ public class PlayerMapper {
         return builder.build();
     }
 
-    public static SnakesProto.GamePlayers dtoPlayers(@NonNull Collection<Player> players){
+    public static SnakesProto.GamePlayers dtoPlayers(@NonNull Collection<? extends Player> players){
         return SnakesProto.GamePlayers.newBuilder()
                 .addAllPlayers(players.stream().map(PlayerMapper::model2Dto).toList())
                 .build();
+    }
+
+    public static List<Player> modelPlayers(@NonNull SnakesProto.GamePlayers dtoPlayers){
+        return dtoPlayers.getPlayersList().stream()
+                .map(PlayerMapper::dto2Model).toList();
     }
 }

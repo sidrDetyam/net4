@@ -3,8 +3,8 @@ package ru.nsu.gemuev.net4.net;
 import lombok.NonNull;
 import lombok.extern.log4j.Log4j2;
 import ru.nsu.gemuev.net4.SnakesProto;
-import ru.nsu.gemuev.net4.model.GameMessageReceiver;
-import ru.nsu.gemuev.net4.model.GameMessageSender;
+import ru.nsu.gemuev.net4.model.communication.GameMessageReceiver;
+import ru.nsu.gemuev.net4.model.communication.GameMessageSender;
 
 import java.io.Closeable;
 import java.io.IOException;

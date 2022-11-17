@@ -7,5 +7,6 @@
     <ListView fx:id="gamesList" focusTraversable="false" prefHeight="353.0" prefWidth="600.0" />
     <Button layoutX="280.0" layoutY="359.0" mnemonicParsing="false" onAction="#onBackPressed" text="Back" />
    <Button layoutX="342.0" layoutY="359.0" mnemonicParsing="false" onAction="#onJoinClicked" text="Join" />
+   <TextField fx:id="playerNameField" layoutX="88.0" layoutY="359.0" />
 <!--    <ProgressIndicator fx:id="progressIndicator" layoutX="539.0" layoutY="358.0" prefHeight="27.0" prefWidth="46.0" visible="false" />-->
 </AnchorPane>

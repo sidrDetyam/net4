@@ -11,6 +11,7 @@ module ru.nsu.gemuev.net4 {
     requires com.google.guice;
     requires org.apache.logging.log4j;
     requires com.google.common;
+    requires org.jetbrains.annotations;
 
     opens ru.nsu.gemuev.net4.util to com.google.guice;
 
@@ -19,11 +20,11 @@ module ru.nsu.gemuev.net4 {
     exports ru.nsu.gemuev.net4.controllers;
     exports ru.nsu.gemuev.net4.controllers.uievents;
     opens ru.nsu.gemuev.net4.controllers to javafx.fxml;
-    opens ru.nsu.gemuev.net4.model.gameevents;
     opens ru.nsu.gemuev.net4.model;
     exports ru.nsu.gemuev.net4.model;
     exports ru.nsu.gemuev.net4.model.game;
     exports ru.nsu.gemuev.net4.net;
     opens ru.nsu.gemuev.net4.model.game;
-    exports ru.nsu.gemuev.net4.model.gameevents;
+    exports ru.nsu.gemuev.net4.model.communication;
+    opens ru.nsu.gemuev.net4.model.communication;
 }

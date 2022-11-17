@@ -1,4 +1,4 @@
-package ru.nsu.gemuev.net4.model;
+package ru.nsu.gemuev.net4.model.communication;
 
 import lombok.NonNull;
 import ru.nsu.gemuev.net4.SnakesProto;

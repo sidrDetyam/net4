@@ -1,4 +1,4 @@
-package ru.nsu.gemuev.net4.model;
+package ru.nsu.gemuev.net4.model.communication;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
