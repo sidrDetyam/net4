@@ -74,4 +74,15 @@ public class GameMessageConfirmingSender {
                     message.getReceiverAddress().equals(address) && message.getReceiverPort() == port);
         }
     }
+
+    public void replaceDestination(@NonNull InetAddress oldAddress,
+                                   @Range(from = 0, to = 65536) int oldPort,
+                                   @NonNull InetAddress newAddress,
+                                   @Range(from = 0, to = 65536) int newPort) {
+        synchronized (unconfirmedMessages) {
+            unconfirmedMessages.replaceAll(message ->
+                    message.getReceiverAddress().equals(oldAddress) && message.getReceiverPort()==oldPort?
+                    new Message(message.getMessage(), newAddress, newPort, message.getSentAt()) : message);
+        }
+    }
 }

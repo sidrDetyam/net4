@@ -39,7 +39,7 @@ public class ConfigViewController {
                 Integer.parseInt(foodStatic.getText()),
                 Integer.parseInt(delay.getText()));
 
-        model.newGame(gameConfig);
+        model.newGame(gameConfig, "game name");
         eventBus.post(new ShowGameViewEvent());
     }
 

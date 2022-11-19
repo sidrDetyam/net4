@@ -7,29 +7,26 @@ import lombok.NonNull;
 import ru.nsu.gemuev.net4.controllers.uievents.ListOfAnnGamesChangedEvent;
 
 import java.time.Instant;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class AnnouncementGamesRepository {
 
     @Getter
-    private final Set<AnnouncementGame> repository = new HashSet<>();
+    private final Map<AnnouncementGame, Long> repository = new HashMap<>();
     private final EventBus eventBus;
 
     public synchronized List<AnnouncementGame> getListOfGames(){
-        return List.copyOf(repository);
+        return List.copyOf(repository.keySet());
     }
 
     public synchronized void deleteExpiredGames(long ttl){
-        System.out.println("del " + repository);
-        repository.removeIf(entry -> Instant.now().toEpochMilli() - entry.createdAt() > ttl);
+        long instant = Instant.now().toEpochMilli();
+        repository.entrySet().removeIf(entry -> instant - entry.getValue() > ttl);
         eventBus.post(new ListOfAnnGamesChangedEvent(getListOfGames()));
     }
 
     public synchronized void addGame(@NonNull AnnouncementGame game){
-        System.out.println("add " + repository);
-        repository.add(game);
+        repository.put(game, Instant.now().toEpochMilli());
         eventBus.post(new ListOfAnnGamesChangedEvent(getListOfGames()));
     }
 

@@ -21,6 +21,14 @@ public class UdpSenderReceiver implements GameMessageSender, GameMessageReceiver
         datagramSocket = new DatagramSocket();
     }
 
+    public InetAddress getLocalAddress(){
+        return datagramSocket.getLocalAddress();
+    }
+
+    public int getLocalPort(){
+        return datagramSocket.getLocalPort();
+    }
+
     @Override
     public void sendGameMessage(@NonNull InetAddress address, int port, @NonNull SnakesProto.GameMessage gameMessage)
             throws IOException {

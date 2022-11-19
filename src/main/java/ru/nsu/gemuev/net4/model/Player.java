@@ -15,6 +15,6 @@ public class Player {
     private InetAddress address;
     private int port;
     private NodeRole playerRole;
-    private int score;
+    private int killed;
     private long lastComm;
 }

@@ -33,7 +33,7 @@ public class PlayerMapper {
                 .setId(modelPlayer.getId())
                 .setPort(modelPlayer.getPort())
                 .setRole(NodeRoleMapper.model2Dto(modelPlayer.getPlayerRole()))
-                .setScore(modelPlayer.getScore());
+                .setScore(modelPlayer.getKilled());
         if(modelPlayer.getAddress() != null){
             builder.setIpAddress(modelPlayer.getAddress().getHostAddress());
         }

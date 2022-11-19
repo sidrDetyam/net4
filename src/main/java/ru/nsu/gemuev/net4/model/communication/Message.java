@@ -1,14 +1,12 @@
 package ru.nsu.gemuev.net4.model.communication;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import ru.nsu.gemuev.net4.SnakesProto;
 
 import java.net.InetAddress;
 
 @RequiredArgsConstructor
+@AllArgsConstructor
 @Getter
 @EqualsAndHashCode
 public class Message {

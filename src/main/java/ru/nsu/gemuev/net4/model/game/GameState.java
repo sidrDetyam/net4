@@ -13,39 +13,38 @@ public class GameState {
     @Getter
     private int stateOrder = 0;
 
-    public List<Snake> getSnakes(){
-        return List.copyOf(snakes);
+    public List<Snake> getSnakes() {
+        return Collections.unmodifiableList(snakes);
     }
 
-    public List<Coordinate> getFoods(){
-        return List.copyOf(foods);
+    public List<Coordinate> getFoods() {
+        return Collections.unmodifiableList(foods);
     }
 
     public GameState(@NonNull GameConfig gameConfig,
                      @NonNull Collection<Snake> snakes,
                      @NonNull Collection<Coordinate> foods,
-                     int stateOrder){
+                     int stateOrder) {
         this.snakes.addAll(snakes);
         this.foods.addAll(foods);
         this.gameConfig = gameConfig;
         this.stateOrder = stateOrder;
     }
 
-    public GameState(@NonNull GameConfig gameConfig){
+    public GameState(@NonNull GameConfig gameConfig) {
         this.gameConfig = gameConfig;
-        generateFood(gameConfig.foodStatic());
+        generateFood();
     }
 
-    private void generateFood(int count){
+    private void generateFood() {
         Random random = new Random();
         var field = fieldPresentation();
-        for(int i=0; i<count;){
+        while (foods.size() < gameConfig.foodStatic()) {
             int x = random.nextInt(gameConfig.width());
             int y = random.nextInt(gameConfig.height());
-            if(field[x][y] == Cell.FREE){
+            if (field[x][y] == Cell.FREE) {
                 field[x][y] = Cell.FOOD;
                 foods.add(new Coordinate(x, y));
-                ++i;
             }
         }
     }
@@ -59,7 +58,7 @@ public class GameState {
         }
 
         for (var snake : snakes) {
-            for(var segment : snake.getBody()){
+            for (var segment : snake.getBody()) {
                 field[segment.getCoordinate().x()][segment.getCoordinate().y()] = Cell.SNAKE_BODY;
             }
         }
@@ -82,7 +81,7 @@ public class GameState {
         return true;
     }
 
-    public boolean addPlayer(int playerId){
+    public boolean addPlayer(int playerId) {
         var field = fieldPresentation();
         for (int i = 0; i < gameConfig.width() - 4; ++i) {
             for (int j = 0; j < gameConfig.height() - 4; ++j) {
@@ -90,7 +89,7 @@ public class GameState {
                         && field[i + 2][j + 3] == Cell.FREE) {
 
                     Snake snake = new Snake(gameConfig.width(), gameConfig.height(),
-                            Direction.UP, new Coordinate(i+2, j+2), playerId);
+                            Direction.UP, new Coordinate(i + 2, j + 2), playerId);
                     snake.grow();
                     snakes.add(snake);
                     return true;
@@ -100,21 +99,63 @@ public class GameState {
         return false;
     }
 
-    public void nextState(){
-        var field = fieldPresentation();
+    public void steer(int snakeId,
+                      @NonNull Direction newDirection) {
+        snakes.stream()
+                .filter(snake -> snake.getPlayerId() == snakeId)
+                .findAny()
+                .ifPresent(snake -> snake.setHeadDirection(newDirection));
+    }
+
+    private List<Murder> findMurders() {
+        List<Murder> murders = new ArrayList<>();
+        snakes.forEach(snake -> {
+            for (Snake otherSnake : snakes) {
+                if (snake.isSuicide()) {
+                    murders.add(new Murder(snake.getPlayerId(), snake.getPlayerId()));
+                    break;
+                }
+                if (otherSnake.getPlayerId() != snake.getPlayerId()
+                        && otherSnake.isContain(snake.getHead().x(), snake.getHead().y())) {
+                    murders.add(new Murder(otherSnake.getPlayerId(), snake.getPlayerId()));
+                }
+            }
+        });
+
+        return murders;
+    }
+
+    public List<Murder> nextState() {
         Set<Coordinate> ateFoods = new HashSet<>();
-        for(Snake snake : snakes){
+        for (Snake snake : snakes) {
             snake.forward();
             Coordinate headCoord = snake.getHeadCoordinate();
-            if(field[headCoord.x()][headCoord.y()] == Cell.FOOD){
+            if (foods.contains(headCoord)) {
                 snake.grow();
                 ateFoods.add(headCoord);
             }
         }
-        for(Coordinate food : ateFoods){
-            foods.remove(food);
-        }
-        generateFood(ateFoods.size());
+        foods.removeAll(ateFoods);
+
+        List<Murder> murders = findMurders();
+        Random random = new Random();
+        List<Snake> deadSnakes = murders.stream()
+                .map(Murder::victimId)
+                .distinct()
+                .flatMap(victim -> snakes.stream()
+                        .filter(s -> s.getPlayerId() == victim)).toList();
+
+        deadSnakes.forEach(dead -> {
+            for(var seg : dead.getBody()){
+                if(random.nextBoolean()){
+                    foods.add(seg.getCoordinate());
+                }
+            }
+        });
+        snakes.removeAll(deadSnakes);
+
+        generateFood();
         ++stateOrder;
+        return murders;
     }
 }

@@ -93,4 +93,22 @@ public class MessageMapper {
                 .setReceiverId(receiverId)
                 .build();
     }
+
+    public static SnakesProto.GameMessage roleChangedOf(@NonNull NodeRole senderRole,
+                                                        @NonNull NodeRole receiverRole,
+                                                        int senderId,
+                                                        int receiverId,
+                                                        long msgSeq){
+        var msg = SnakesProto.GameMessage.RoleChangeMsg
+                .newBuilder()
+                .setReceiverRole(NodeRoleMapper.model2Dto(receiverRole))
+                .setSenderRole(NodeRoleMapper.model2Dto(senderRole))
+                .build();
+        return SnakesProto.GameMessage.newBuilder()
+                .setRoleChange(msg)
+                .setMsgSeq(msgSeq)
+                .setReceiverId(receiverId)
+                .setSenderId(senderId)
+                .build();
+    }
 }

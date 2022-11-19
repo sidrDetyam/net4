@@ -11,8 +11,7 @@ public record AnnouncementGame(@NonNull InetAddress senderAddress,
                                @NonNull String gameName,
                                int countOfPlayers,
                                @NonNull GameConfig gameConfig,
-                               boolean canJoin,
-                               long createdAt) {
+                               boolean canJoin) {
 
     @Override
     public boolean equals(Object o) {

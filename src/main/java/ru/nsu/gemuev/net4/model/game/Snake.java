@@ -1,13 +1,12 @@
 package ru.nsu.gemuev.net4.model.game;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+@EqualsAndHashCode(of = "playerId")
 public class Snake {
     private final List<SnakeSegment> body = new ArrayList<>();
     //TODO А должна ли змейка знать размер поля?
@@ -19,7 +18,7 @@ public class Snake {
     private SnakeState snakeState;
 
     public List<SnakeSegment> getBody(){
-        return List.copyOf(body);
+        return Collections.unmodifiableList(body);
     }
 
     public SnakeSegment getHead(){
@@ -35,10 +34,19 @@ public class Snake {
         private void forward(){
             coordinate = direction.shift(coordinate, sizeX, sizeY);
         }
+
+        public int x(){
+            return coordinate.x();
+        }
+
+        public int y(){
+            return coordinate.y();
+        }
     }
 
     public Snake(int sizeX, int sizeY,
-                 Direction headDirection, @NonNull Coordinate headCoordinate,
+                 @NonNull Direction headDirection,
+                 @NonNull Coordinate headCoordinate,
                  int playerId){
         this.sizeX = sizeX;
         this.sizeY = sizeY;
@@ -47,7 +55,22 @@ public class Snake {
         snakeState = SnakeState.ALIVE;
     }
 
-    public void addSegment(Direction direction){
+    public boolean isSuicide(){
+        for(int i=0; i<body.size(); ++i){
+            for(int j=0; j<body.size(); ++j){
+                if(i != j && body.get(i).getCoordinate().equals(body.get(j).getCoordinate())){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean isContain(int x, int y){
+        return body.stream().anyMatch(seg -> seg.x()==x && seg.y()==y);
+    }
+
+    public void addSegment(@NonNull Direction direction){
         var lastSegment = body.get(body.size()-1);
         var coord = direction.shift(lastSegment.coordinate, sizeX, sizeY);
         body.add(new SnakeSegment(direction.opposite(), coord));
@@ -66,7 +89,7 @@ public class Snake {
         addSegment(body.get(body.size()-1).getDirection().opposite());
     }
 
-    public void setHeadDirection(Direction newDirection){
+    public void setHeadDirection(@NonNull Direction newDirection){
         var head = body.get(0);
         if(body.size() > 1){
             var neck = body.get(1);

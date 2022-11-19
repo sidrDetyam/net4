@@ -5,7 +5,6 @@ import ru.nsu.gemuev.net4.SnakesProto;
 import ru.nsu.gemuev.net4.model.AnnouncementGame;
 
 import java.net.InetAddress;
-import java.time.Instant;
 
 public class AnnouncementMapper {
 
@@ -19,7 +18,6 @@ public class AnnouncementMapper {
                 gameAnnouncement.getGameName(),
                 gameAnnouncement.getPlayers().getPlayersCount(),
                 GameConfigMapper.dto2Model(gameAnnouncement.getConfig()),
-                gameAnnouncement.getCanJoin(),
-                Instant.now().toEpochMilli());
+                gameAnnouncement.getCanJoin());
     }
 }
