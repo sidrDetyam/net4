@@ -22,12 +22,13 @@ public class AnnouncementGamesRepository {
     }
 
     public synchronized void deleteExpiredGames(long ttl){
-        if(repository.removeIf(entry -> Instant.now().toEpochMilli() - entry.createdAt() > ttl)){
-            eventBus.post(new ListOfAnnGamesChangedEvent(getListOfGames()));
-        }
+        System.out.println("del " + repository);
+        repository.removeIf(entry -> Instant.now().toEpochMilli() - entry.createdAt() > ttl);
+        eventBus.post(new ListOfAnnGamesChangedEvent(getListOfGames()));
     }
 
     public synchronized void addGame(@NonNull AnnouncementGame game){
+        System.out.println("add " + repository);
         repository.add(game);
         eventBus.post(new ListOfAnnGamesChangedEvent(getListOfGames()));
     }

@@ -14,9 +14,9 @@ public class MessageMapper {
 
     private MessageMapper(){}
 
-    public static SnakesProto.GameMessage of(@NonNull GameState gameState,
-                                             @NonNull Collection<Player> players,
-                                             long msgSeq){
+    public static SnakesProto.GameMessage stateOf(@NonNull GameState gameState,
+                                                  @NonNull Collection<Player> players,
+                                                  long msgSeq){
 
         var dtoState = StateMapper.model2Dto(gameState, players);
         return SnakesProto.GameMessage.newBuilder()
@@ -25,9 +25,9 @@ public class MessageMapper {
                 .build();
     }
 
-    public static SnakesProto.GameMessage of(@NonNull Direction steer,
-                                             int senderId,
-                                             long msgSeq){
+    public static SnakesProto.GameMessage steerOf(@NonNull Direction steer,
+                                                  int senderId,
+                                                  long msgSeq){
         return SnakesProto.GameMessage.newBuilder()
                 .setSteer(SnakesProto.GameMessage.SteerMsg.newBuilder()
                         .setDirection(DirectionMapper.model2Dto(steer))
@@ -37,11 +37,11 @@ public class MessageMapper {
                 .build();
     }
 
-    public static SnakesProto.GameMessage of(@NonNull GameConfig gameConfig,
-                                             @NonNull Collection<Player> players,
-                                             @NonNull String name,
-                                             boolean canJoin,
-                                             long msgSeq){
+    public static SnakesProto.GameMessage announcementOf(@NonNull GameConfig gameConfig,
+                                                         @NonNull Collection<Player> players,
+                                                         @NonNull String name,
+                                                         boolean canJoin,
+                                                         long msgSeq){
         var game = SnakesProto.GameAnnouncement
                 .newBuilder()
                 .setGameName(name)
@@ -61,10 +61,10 @@ public class MessageMapper {
                 .build();
     }
 
-    public static SnakesProto.GameMessage of(@NonNull String gameName,
-                                             @NonNull String playerName,
-                                             @NonNull NodeRole role,
-                                             long msgSeq){
+    public static SnakesProto.GameMessage joinOf(@NonNull String gameName,
+                                                 @NonNull String playerName,
+                                                 @NonNull NodeRole role,
+                                                 long msgSeq){
         return SnakesProto.GameMessage.newBuilder()
                 .setJoin(SnakesProto.GameMessage.JoinMsg.newBuilder()
                         .setGameName(gameName)
@@ -76,8 +76,8 @@ public class MessageMapper {
                 .build();
     }
 
-    public static SnakesProto.GameMessage of(int receiverId,
-                                             long msgSeq){
+    public static SnakesProto.GameMessage ackOf(int receiverId,
+                                                long msgSeq){
         return SnakesProto.GameMessage.newBuilder()
                 .setAck(SnakesProto.GameMessage.AckMsg.newBuilder().build())
                 .setMsgSeq(msgSeq)
@@ -85,9 +85,12 @@ public class MessageMapper {
                 .build();
     }
 
-    public static SnakesProto.GameMessage ack(){
+    public static SnakesProto.GameMessage pingOf(int receiverId,
+                                                long msgSeq){
         return SnakesProto.GameMessage.newBuilder()
-                .setAck(SnakesProto.GameMessage.AckMsg.newBuilder().build())
+                .setPing(SnakesProto.GameMessage.PingMsg.newBuilder().build())
+                .setMsgSeq(msgSeq)
+                .setReceiverId(receiverId)
                 .build();
     }
 }

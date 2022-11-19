@@ -46,6 +46,7 @@ public class GameMessageConfirmingSender {
 
     public void resendUnconfirmed(@Range(from = 0, to = Long.MAX_VALUE) long ttl) {
         synchronized (unconfirmedMessages) {
+            //System.out.println("unc: " + unconfirmedMessages.size());
             unconfirmedMessages.forEach(message -> {
                 long instant = Instant.now().toEpochMilli();
                 if (instant - message.getSentAt() > ttl) {

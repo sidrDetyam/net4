@@ -8,6 +8,7 @@ import java.net.InetAddress;
 @AllArgsConstructor
 @RequiredArgsConstructor
 @ToString
+@EqualsAndHashCode(of = "id")
 public class Player {
     private final String name;
     private final int id;
