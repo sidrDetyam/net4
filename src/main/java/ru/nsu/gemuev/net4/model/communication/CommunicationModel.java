@@ -3,6 +3,7 @@ package ru.nsu.gemuev.net4.model.communication;
 import com.google.common.eventbus.EventBus;
 import lombok.NonNull;
 import lombok.SneakyThrows;
+import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.Range;
 import ru.nsu.gemuev.net4.controllers.uievents.GameStateChanged;
 import ru.nsu.gemuev.net4.mappers.MessageMapper;
@@ -12,6 +13,7 @@ import ru.nsu.gemuev.net4.model.game.GameState;
 import ru.nsu.gemuev.net4.model.game.Player;
 import ru.nsu.gemuev.net4.model.ports.GameMessageReceiver;
 import ru.nsu.gemuev.net4.model.ports.GameMessageSender;
+import ru.nsu.gemuev.net4.util.DIContainer;
 
 import java.net.InetAddress;
 import java.time.Instant;
@@ -20,6 +22,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+@Log4j2
 public class CommunicationModel {
     private final EventBus eventBus;
     private final Thread listenerThread;
@@ -31,28 +34,29 @@ public class CommunicationModel {
     private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(5);
     private GameState currentGameState;
 
-    public synchronized GameConfig getGameConfig(){
+    public synchronized GameConfig getGameConfig() {
         return currentGameState.getGameConfig();
     }
 
-    public CommunicationModel(@NonNull GameMessageReceiver receiver,
-                              @NonNull GameMessageSender sender,
-                              @NonNull EventBus eventBus,
-                              @NonNull Node master,
-                              @NonNull Node me,
-                              @NonNull GameState initGameState) {
-        this.eventBus = eventBus;
+    CommunicationModel(@NonNull GameMessageReceiver receiver,
+                       @NonNull GameMessageSender sender,
+                       @NonNull Node master,
+                       @NonNull Node me,
+                       @NonNull GameConfig gameConfig) {
+        this.eventBus = DIContainer.getInjector().getInstance(EventBus.class);
         listenerThread = new Thread(new MessagesListener(receiver, new GameMessageHandler(this)));
         listenerThread.start();
         this.sender = new PseudoReliableSender(sender);
+        currentGameState = new GameState(gameConfig);
         nodes.addNode(master);
+        currentGameState.addPlayer(master.getPlayer());
         if (!me.equals(master)) {
             nodes.addNode(me);
+            currentGameState.addPlayer(me.getPlayer());
         }
         myId = me.getPlayerId();
-        currentGameState = initGameState;
 
-        long delay = initGameState.getGameConfig().delay();
+        long delay = gameConfig.delay();
         scheduler.scheduleAtFixedRate(this::nextState, delay, delay, TimeUnit.MILLISECONDS);
         scheduler.scheduleAtFixedRate(() -> this.sender.resendUnconfirmed(delay / 10),
                 0, delay / 10, TimeUnit.MILLISECONDS);
@@ -105,7 +109,7 @@ public class CommunicationModel {
         if (isMyRole(NodeRole.DEPUTY) && node.getRole() == NodeRole.MASTER) {
             sender.cancelConfirmationForHost(node.getAddress(), node.getPort());
             nodes.findNodeById(myId)
-                    .orElseThrow(() -> new IllegalStateException("меня нет"))
+                    .orElseThrow(() -> new IllegalStateException("Cannot find myself"))
                     .setRole(NodeRole.MASTER);
             nodes.getNodes().forEach(n ->
                     sender.sendAsync(n.getAddress(), n.getPort(),
@@ -125,7 +129,7 @@ public class CommunicationModel {
         }
     }
 
-    public synchronized void leave(){
+    public synchronized void leave() {
         listenerThread.interrupt();
         scheduler.shutdown();
     }
@@ -196,8 +200,12 @@ public class CommunicationModel {
                                          long messageSeq,
                                          @NonNull InetAddress address,
                                          @Range(from = 0, to = 65536) int port) {
+        if (role != NodeRole.NORMAL && role != NodeRole.VIEWER) {
+            log.error("This role not allowed %s [%s %s]".formatted(role, address, port));
+            return;
+        }
         var nodeOpt = nodes.findNodeByAddress(address, port);
-        if(nodeOpt.isPresent()){
+        if (nodeOpt.isPresent()) {
             sender.sendAsync(address, port, MessageMapper.ackOf(nodeOpt.get().getPlayerId(), messageSeq), false);
             return;
         }
@@ -205,7 +213,7 @@ public class CommunicationModel {
             Player player = new Player(name, idGenerator.nextId());
             Node node = new Node(player, address, port, role, Instant.now().toEpochMilli());
             if (role != NodeRole.VIEWER) {
-                if(nodes.findNodeByRole(NodeRole.DEPUTY).isEmpty()){
+                if (nodes.findNodeByRole(NodeRole.DEPUTY).isEmpty()) {
                     node.setRole(NodeRole.DEPUTY);
                 }
                 currentGameState.addPlayer(player);
@@ -228,7 +236,6 @@ public class CommunicationModel {
         var node = nodes.findNodeByAddress(address, port).orElseThrow();
         node.updateLastCommunication();
         sender.sendAsync(address, port, MessageMapper.ackOf(node.getPlayerId(), messageSeq), false);
-
     }
 
     public synchronized void roleChangedMessage(@NonNull NodeRole receiverRole,
@@ -238,6 +245,7 @@ public class CommunicationModel {
                                                 long messageSeq,
                                                 @NonNull InetAddress address,
                                                 @Range(from = 0, to = 65536) int port) {
+        nodes.findNodeByAddress(address, port).orElseThrow();
         nodes.findNodeById(senderId).ifPresent(n -> n.setRole(senderRole));
         nodes.findNodeById(receiverId).ifPresent(n -> n.setRole(receiverRole));
         sender.sendAsync(address, port, MessageMapper.ackOf(senderId, messageSeq), false);

@@ -39,7 +39,7 @@ public class ConfigViewController {
                 Integer.parseInt(foodStatic.getText()),
                 Integer.parseInt(delay.getText()));
 
-        model.newGame(gameConfig, "game name");
+        model.newGame(gameConfig, "game name", "player name");
     }
 
     @FXML

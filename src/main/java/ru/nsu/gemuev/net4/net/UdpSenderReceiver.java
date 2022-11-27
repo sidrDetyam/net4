@@ -2,6 +2,7 @@ package ru.nsu.gemuev.net4.net;
 
 import lombok.NonNull;
 import lombok.extern.log4j.Log4j2;
+import org.jetbrains.annotations.Range;
 import ru.nsu.gemuev.net4.SnakesProto;
 import ru.nsu.gemuev.net4.model.ports.GameMessageReceiver;
 import ru.nsu.gemuev.net4.model.ports.GameMessageSender;
@@ -23,12 +24,9 @@ public class UdpSenderReceiver implements GameMessageSender, GameMessageReceiver
         datagramSocket = new DatagramSocket();
     }
 
-    public InetAddress getLocalAddress(){
-        return datagramSocket.getLocalAddress();
-    }
-
-    public int getLocalPort(){
-        return datagramSocket.getLocalPort();
+    public void setSoTimeout(@Range(from = 0, to = Integer.MAX_VALUE) int timeout)
+            throws SocketException {
+        datagramSocket.setSoTimeout(timeout);
     }
 
     @Override

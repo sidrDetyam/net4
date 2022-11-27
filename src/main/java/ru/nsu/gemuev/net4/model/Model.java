@@ -5,9 +5,7 @@ import com.google.inject.Inject;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
-import org.jetbrains.annotations.Range;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
-import ru.nsu.gemuev.net4.mappers.MessageMapper;
 import ru.nsu.gemuev.net4.model.communication.*;
 import ru.nsu.gemuev.net4.model.game.Direction;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
@@ -18,10 +16,7 @@ import ru.nsu.gemuev.net4.model.ports.GameMessageSender;
 import ru.nsu.gemuev.net4.net.MulticastReceiver;
 import ru.nsu.gemuev.net4.net.UdpSenderReceiver;
 
-import java.io.IOException;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.time.Instant;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -62,7 +57,9 @@ public class Model {
     }
 
     @SneakyThrows
-    public synchronized void newGame(@NonNull GameConfig gameConfig, @NonNull String playerName) {
+    public synchronized void newGame(@NonNull GameConfig gameConfig,
+                                     @NonNull String playerName,
+                                     @NonNull String gameName) {
         if(currentState == ModelState.GAME_RUNNING){
             communicationModel.leave();
         }
@@ -75,7 +72,8 @@ public class Model {
             // TODO что-то показать
             return;
         }
-        communicationModel = new CommunicationModel(receiver, sender, eventBus, node, node, initGameState);
+        communicationModel = new CommunicationModelBuilder(receiver, sender)
+                .createGame(gameName, playerName, gameConfig);
         currentState = ModelState.GAME_RUNNING;
         eventBus.post(new ShowGameViewEvent());
         System.out.println("here");
@@ -94,6 +92,12 @@ public class Model {
         currentState = ModelState.NO_GAME;
     }
 
+    public synchronized void exit(){
+        stopGame();
+        multicastListenerThread.interrupt();
+        scheduler.shutdown();
+    }
+
     public synchronized void joinGame(@NonNull String playerName) {
         var opt = gamesRepository.getRepository().keySet().stream().findFirst();
         if(opt.isEmpty()){
@@ -101,64 +105,16 @@ public class Model {
             return;
         }
         opt.ifPresent(entry -> {
-            var joinMsg = MessageMapper.joinOf(entry.gameName(), playerName, NodeRole.NORMAL, 0);
             pseudoReliableSender.clear();
-            //joinGameAckListenerThread = new Thread(new MessagesListener(receiver, new AnnouncementMessageHandler(this)));
-            //joinGameAckListenerThread.start();
-            gameConfig = entry.gameConfig();
-
-            var buff = new byte[100000];
-            while(true){
-                try {
-                    pseudoReliableSender.sendAsync(entry.senderAddress(), entry.senderPort(), joinMsg, false);
-                    var message = receiver.receiveGameMessage(buff);
-                    var msg = message.getMessage();
-                    if(message.getMessage().hasAck()){
-                        currentState = ModelState.GAME_RUNNING;
-
-                        var myNode = new Node(new Player("", msg.getReceiverId()),
-                                InetAddress.getLocalHost(), 0, NodeRole.NORMAL, 0);
-                        Node master = new Node(new Player("", msg.getSenderId()),
-                                entry.senderAddress(), entry.senderPort(), NodeRole.MASTER, Instant.now().toEpochMilli());
-                        currentState = ModelState.GAME_RUNNING;
-                        GameState init = new GameState(gameConfig);
-                        communicationModel = new CommunicationModel(receiver, sender, eventBus, master, myNode, init);
-                        eventBus.post(new ShowGameViewEvent());
-                        break;
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            try {
+                communicationModel = new CommunicationModelBuilder(receiver, sender)
+                        .joinToGame(playerName, NodeRole.NORMAL, entry);
+                currentState = ModelState.GAME_RUNNING;
+                eventBus.post(new ShowGameViewEvent());
+            } catch (JoinGameException e) {
+                log.error(e);
             }
-
-//            try {
-//                new AnnouncementMessageHandler(this).handle(receiver.receiveGameMessage(new byte[100000]));
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
         });
-    }
-
-    @SneakyThrows
-    public synchronized void ackMessage(int senderId,
-                                        int receiverId,
-                                        long messageSeq,
-                                        @NonNull InetAddress address,
-                                        @Range(from = 0, to = 65536) int port) {
-        pseudoReliableSender.confirm(address, port, messageSeq);
-        if (currentState == ModelState.WAIT_ACK) {
-            Player me = new Player("", receiverId);
-            Node myNode = new Node(me, InetAddress.getLocalHost(), 0, NodeRole.NORMAL, 0);
-            Node master = new Node(new Player("", senderId),
-                    address, port, NodeRole.MASTER, Instant.now().toEpochMilli());
-
-            currentState = ModelState.GAME_RUNNING;
-            //joinGameAckListenerThread.interrupt();
-
-            GameState init = new GameState(gameConfig);
-            communicationModel = new CommunicationModel(receiver, sender, eventBus, master, myNode, init);
-            eventBus.post(new ShowGameViewEvent());
-        }
     }
 
     public synchronized void announcementGameMessage(@NonNull AnnouncementGame game) {

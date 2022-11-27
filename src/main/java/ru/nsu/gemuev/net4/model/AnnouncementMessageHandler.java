@@ -16,8 +16,6 @@ public class AnnouncementMessageHandler implements MessageHandler {
     private final Model model;
 
     public void handle(@NonNull Message message){
-        //log.error(message);
-
         InetAddress address = message.getAddress();
         int port = message.getPort();
         SnakesProto.GameMessage msg = message.getMessage();
@@ -25,11 +23,6 @@ public class AnnouncementMessageHandler implements MessageHandler {
         if(msg.hasAnnouncement()){
             msg.getAnnouncement().getGamesList().forEach(game ->
                     model.announcementGameMessage(AnnouncementMapper.of(game, address, port)));
-            return;
-        }
-
-        if(msg.hasAck()){
-            model.ackMessage(msg.getSenderId(), msg.getReceiverId(), msg.getMsgSeq(), address, port);
             return;
         }
 

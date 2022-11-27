@@ -1,21 +1,24 @@
 package ru.nsu.gemuev.net4.net;
 
 import lombok.NonNull;
+import org.jetbrains.annotations.Range;
 import ru.nsu.gemuev.net4.SnakesProto;
 import ru.nsu.gemuev.net4.model.ports.GameMessageReceiver;
 import ru.nsu.gemuev.net4.model.ports.Message;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.MulticastSocket;
-import java.net.NetworkInterface;
-import java.net.SocketAddress;
+import java.net.*;
 import java.util.Arrays;
 
 public class MulticastReceiver implements GameMessageReceiver, Closeable {
 
     private final MulticastSocket multicastSocket;
+
+    public void setSoTimeout(@Range(from = 0, to = Integer.MAX_VALUE) int timeout)
+            throws SocketException {
+        multicastSocket.setSoTimeout(timeout);
+    }
 
     public MulticastReceiver(@NonNull SocketAddress socketAddress,
                              @NonNull NetworkInterface netInterface,
