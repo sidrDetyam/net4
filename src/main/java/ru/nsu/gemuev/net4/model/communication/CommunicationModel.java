@@ -6,8 +6,8 @@ import lombok.SneakyThrows;
 import org.jetbrains.annotations.Range;
 import ru.nsu.gemuev.net4.controllers.uievents.GameStateChanged;
 import ru.nsu.gemuev.net4.mappers.MessageMapper;
-import ru.nsu.gemuev.net4.model.NodeRole;
 import ru.nsu.gemuev.net4.model.game.Direction;
+import ru.nsu.gemuev.net4.model.game.GameConfig;
 import ru.nsu.gemuev.net4.model.game.GameState;
 import ru.nsu.gemuev.net4.model.game.Player;
 import ru.nsu.gemuev.net4.model.ports.GameMessageReceiver;
@@ -31,6 +31,10 @@ public class CommunicationModel {
     private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(5);
     private GameState currentGameState;
 
+    public synchronized GameConfig getGameConfig(){
+        return currentGameState.getGameConfig();
+    }
+
     public CommunicationModel(@NonNull GameMessageReceiver receiver,
                               @NonNull GameMessageSender sender,
                               @NonNull EventBus eventBus,
@@ -38,7 +42,8 @@ public class CommunicationModel {
                               @NonNull Node me,
                               @NonNull GameState initGameState) {
         this.eventBus = eventBus;
-        listenerThread = new Thread(new MessagesListener(receiver, new GameEventHandler(this)));
+        listenerThread = new Thread(new MessagesListener(receiver, new GameMessageHandler(this)));
+        listenerThread.start();
         this.sender = new PseudoReliableSender(sender);
         nodes.addNode(master);
         if (!me.equals(master)) {
@@ -60,7 +65,7 @@ public class CommunicationModel {
     }
 
     private boolean isMyRole(@NonNull NodeRole role) {
-        var me = nodes.findNodeByRole(role).orElseThrow(
+        var me = nodes.findNodeById(myId).orElseThrow(
                 () -> new IllegalStateException("Game without player"));
         return me.getRole() == role;
     }
@@ -101,7 +106,7 @@ public class CommunicationModel {
             sender.cancelConfirmationForHost(node.getAddress(), node.getPort());
             nodes.findNodeById(myId)
                     .orElseThrow(() -> new IllegalStateException("меня нет"))
-                    .setRole(NodeRole.NORMAL);
+                    .setRole(NodeRole.MASTER);
             nodes.getNodes().forEach(n ->
                     sender.sendAsync(n.getAddress(), n.getPort(),
                             MessageMapper.roleChangedOf(NodeRole.MASTER, n.getRole(), myId, n.getPlayerId(), nextMsgSeq()),
@@ -140,6 +145,7 @@ public class CommunicationModel {
 
     @SneakyThrows
     private synchronized void announceGame() {
+        System.out.println(nodes.getNodes());
         if (isMyRole(NodeRole.MASTER)) {
             sender.sendAsync(InetAddress.getByName("239.192.0.4"), 9193,
                     MessageMapper.announcementOf(currentGameState.getGameConfig(), nodes.getNodes(),
@@ -190,6 +196,11 @@ public class CommunicationModel {
                                          long messageSeq,
                                          @NonNull InetAddress address,
                                          @Range(from = 0, to = 65536) int port) {
+        var nodeOpt = nodes.findNodeByAddress(address, port);
+        if(nodeOpt.isPresent()){
+            sender.sendAsync(address, port, MessageMapper.ackOf(nodeOpt.get().getPlayerId(), messageSeq), false);
+            return;
+        }
         if (isMyRole(NodeRole.MASTER)) {
             Player player = new Player(name, idGenerator.nextId());
             Node node = new Node(player, address, port, role, Instant.now().toEpochMilli());

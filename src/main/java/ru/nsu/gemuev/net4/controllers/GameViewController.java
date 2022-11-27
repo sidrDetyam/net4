@@ -10,6 +10,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
+import lombok.NonNull;
 import lombok.extern.log4j.Log4j2;
 import ru.nsu.gemuev.net4.controllers.uievents.GameStateChanged;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowConfigViewEvent;
@@ -17,6 +18,7 @@ import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowMainViewEvent;
 import ru.nsu.gemuev.net4.model.Model;
 import ru.nsu.gemuev.net4.model.game.Direction;
+import ru.nsu.gemuev.net4.model.game.GameState;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -68,16 +70,16 @@ public class GameViewController implements Initializable {
     }
 
     @Subscribe
-    public void onNextState(GameStateChanged __){
-        Platform.runLater(this::drawBackground);
+    public void onNextState(@NonNull GameStateChanged newState){
+        Platform.runLater(() -> drawBackground(newState.getGameState()));
     }
 
-    private void drawBackground() {
+    private void drawBackground(@NonNull GameState gameState) {
         var gc = canvas.getGraphicsContext2D();
-        final int SQUARE_SIZE = WIDTH / model.getGameConfig().width();
-        final int sizeX = model.getGameConfig().width();
-        final int sizeY = model.getGameConfig().height();
-        var field = model.getGameState().fieldPresentation();
+        final int SQUARE_SIZE = WIDTH / gameState.getGameConfig().width();
+        final int sizeX = gameState.getGameConfig().width();
+        final int sizeY = gameState.getGameConfig().height();
+        var field = gameState.fieldPresentation();
 
         for (int i = 0; i < sizeX; i++) {
             for (int j = 0; j < sizeY; j++) {

@@ -67,6 +67,6 @@ public class GamesListViewController implements Initializable {
     @FXML
     public void onJoinClicked() {
         Model model = DIContainer.getInjector().getInstance(Model.class);
-        model.joinGame_(playerNameField.getText());
+        model.joinGame(playerNameField.getText());
     }
 }

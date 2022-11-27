@@ -2,7 +2,7 @@ package ru.nsu.gemuev.net4.mappers;
 
 import lombok.NonNull;
 import ru.nsu.gemuev.net4.SnakesProto;
-import ru.nsu.gemuev.net4.model.NodeRole;
+import ru.nsu.gemuev.net4.model.communication.NodeRole;
 import ru.nsu.gemuev.net4.model.communication.Node;
 import ru.nsu.gemuev.net4.model.game.Direction;
 import ru.nsu.gemuev.net4.model.game.GameConfig;

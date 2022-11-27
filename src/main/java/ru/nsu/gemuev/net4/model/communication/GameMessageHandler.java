@@ -3,10 +3,10 @@ package ru.nsu.gemuev.net4.model.communication;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.jetbrains.annotations.Range;
-import ru.nsu.gemuev.net4.SnakesProto;
-import ru.nsu.gemuev.net4.mappers.*;
-import ru.nsu.gemuev.net4.model.game.Player;
+import ru.nsu.gemuev.net4.mappers.DirectionMapper;
+import ru.nsu.gemuev.net4.mappers.NodeRoleMapper;
+import ru.nsu.gemuev.net4.mappers.PlayerMapper;
+import ru.nsu.gemuev.net4.mappers.StateMapper;
 import ru.nsu.gemuev.net4.model.game.GameState;
 import ru.nsu.gemuev.net4.model.ports.Message;
 
@@ -15,7 +15,7 @@ import java.util.List;
 
 @Log4j2
 @RequiredArgsConstructor
-public class GameEventHandler{
+public class GameMessageHandler implements MessageHandler{
 
     private final CommunicationModel model;
 
@@ -32,16 +32,8 @@ public class GameEventHandler{
         if(gameMessage.hasState()){
             var dtoState = gameMessage.getState().getState();
             GameState state = StateMapper.dto2Model(dtoState, model.getGameConfig());
-            List<Player> players = PlayerMapper.modelPlayers(dtoState.getPlayers());
+            List<Node> players = PlayerMapper.nodes(dtoState.getPlayers());
             model.stateMessage(state, players, gameMessage.getMsgSeq(), address, port);
-        }
-
-        if(gameMessage.hasAnnouncement()){
-            var announcements = gameMessage.getAnnouncement().getGamesList();
-            for(var ann : announcements){
-                //System.out.println("count: " + ann.getPlayers().getPlayersCount());
-                model.addGame(AnnouncementMapper.of(ann, address, port));
-            }
         }
 
         if(gameMessage.hasJoin()){
@@ -51,8 +43,7 @@ public class GameEventHandler{
         }
 
         if(gameMessage.hasAck()){
-            model.ackMessage(gameMessage.getReceiverId(), gameMessage.getMsgSeq(),
-                    address, port);
+            model.ackMessage(gameMessage.getMsgSeq(), address, port);
         }
 
         if(gameMessage.hasPing()){

@@ -2,7 +2,6 @@ package ru.nsu.gemuev.net4.model.communication;
 
 import lombok.NonNull;
 import org.jetbrains.annotations.Range;
-import ru.nsu.gemuev.net4.model.NodeRole;
 
 import java.net.InetAddress;
 import java.time.Instant;

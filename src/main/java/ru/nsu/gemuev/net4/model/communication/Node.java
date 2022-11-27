@@ -1,7 +1,6 @@
 package ru.nsu.gemuev.net4.model.communication;
 
 import lombok.*;
-import ru.nsu.gemuev.net4.model.NodeRole;
 import ru.nsu.gemuev.net4.model.game.Player;
 
 import java.net.InetAddress;
@@ -11,6 +10,7 @@ import java.time.Instant;
 @RequiredArgsConstructor
 @Getter
 @EqualsAndHashCode(of = {"player"})
+@ToString
 public class Node {
     private final Player player;
     private final InetAddress address;

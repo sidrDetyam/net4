@@ -51,8 +51,8 @@ public class DIModule extends AbstractModule {
     @Provides
     @Singleton
     @SneakyThrows
-    Model getModel(MulticastReceiver multicastReceiver, UdpSenderReceiver udpSenderReceiver){
-        return new Model(multicastReceiver, udpSenderReceiver);
+    Model getModel(MulticastReceiver multicastReceiver, UdpSenderReceiver udpSenderReceiver, EventBus eventBus){
+        return new Model(multicastReceiver, udpSenderReceiver, udpSenderReceiver, eventBus);
     }
 
     @Provides
