@@ -27,4 +27,6 @@ module ru.nsu.gemuev.net4 {
     opens ru.nsu.gemuev.net4.model.game;
     exports ru.nsu.gemuev.net4.model.communication;
     opens ru.nsu.gemuev.net4.model.communication;
+    exports ru.nsu.gemuev.net4.model.ports;
+    opens ru.nsu.gemuev.net4.model.ports;
 }

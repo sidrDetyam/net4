@@ -7,8 +7,10 @@ import java.util.*;
 
 public class GameState {
 
+    private final List<Player> players = new ArrayList<>();
     private final List<Snake> snakes = new ArrayList<>();
     private final List<Coordinate> foods = new ArrayList<>();
+    @Getter
     private final GameConfig gameConfig;
     @Getter
     private int stateOrder = 0;
@@ -81,7 +83,7 @@ public class GameState {
         return true;
     }
 
-    public boolean addPlayer(int playerId) {
+    public boolean addPlayer(@NonNull Player player) {
         var field = fieldPresentation();
         for (int i = 0; i < gameConfig.width() - 4; ++i) {
             for (int j = 0; j < gameConfig.height() - 4; ++j) {
@@ -89,9 +91,10 @@ public class GameState {
                         && field[i + 2][j + 3] == Cell.FREE) {
 
                     Snake snake = new Snake(gameConfig.width(), gameConfig.height(),
-                            Direction.UP, new Coordinate(i + 2, j + 2), playerId);
+                            Direction.UP, new Coordinate(i + 2, j + 2), player.getId());
                     snake.grow();
                     snakes.add(snake);
+                    players.add(player);
                     return true;
                 }
             }
@@ -153,9 +156,17 @@ public class GameState {
             }
         });
         snakes.removeAll(deadSnakes);
+        //players.removeAll(deadSnakes.stream().map(sn))
 
         generateFood();
         ++stateOrder;
         return murders;
+    }
+
+    public void playerLeave(int playerId){
+        snakes.stream()
+                .filter(s -> s.getPlayerId() == playerId).findAny()
+                .ifPresent(s -> s.setSnakeState(SnakeState.ZOMBIE));
+        players.removeIf(player -> player.getId() == playerId);
     }
 }

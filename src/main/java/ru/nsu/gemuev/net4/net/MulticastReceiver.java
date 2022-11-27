@@ -1,7 +1,7 @@
 package ru.nsu.gemuev.net4.net;
 
 import lombok.NonNull;
-import ru.nsu.gemuev.net4.model.communication.GameMessageReceiver;
+import ru.nsu.gemuev.net4.model.ports.GameMessageReceiver;
 
 import java.io.Closeable;
 import java.io.IOException;

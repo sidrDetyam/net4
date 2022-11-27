@@ -14,6 +14,7 @@ import lombok.extern.log4j.Log4j2;
 import ru.nsu.gemuev.net4.controllers.uievents.GameStateChanged;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowConfigViewEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
+import ru.nsu.gemuev.net4.controllers.uievents.ShowMainViewEvent;
 import ru.nsu.gemuev.net4.model.Model;
 import ru.nsu.gemuev.net4.model.game.Direction;
 
@@ -38,7 +39,7 @@ public class GameViewController implements Initializable {
     @FXML
     protected void onBackClicked(ActionEvent actionEvent) {
         model.stopGame();
-        eventBus.post(new ShowConfigViewEvent());
+        eventBus.post(new ShowMainViewEvent());
     }
 
     @FXML

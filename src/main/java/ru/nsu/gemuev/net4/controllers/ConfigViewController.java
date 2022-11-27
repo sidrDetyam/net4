@@ -40,7 +40,6 @@ public class ConfigViewController {
                 Integer.parseInt(delay.getText()));
 
         model.newGame(gameConfig, "game name");
-        eventBus.post(new ShowGameViewEvent());
     }
 
     @FXML

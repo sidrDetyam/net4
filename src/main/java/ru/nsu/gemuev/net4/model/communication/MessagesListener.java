@@ -3,7 +3,7 @@ package ru.nsu.gemuev.net4.model.communication;
 import lombok.NonNull;
 import lombok.extern.log4j.Log4j2;
 import ru.nsu.gemuev.net4.SnakesProto;
-import ru.nsu.gemuev.net4.model.GameEventHandler;
+import ru.nsu.gemuev.net4.model.ports.GameMessageReceiver;
 
 import java.util.Arrays;
 

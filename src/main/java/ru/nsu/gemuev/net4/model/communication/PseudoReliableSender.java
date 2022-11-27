@@ -1,10 +1,11 @@
 package ru.nsu.gemuev.net4.model.communication;
 
-import com.google.inject.Inject;
 import lombok.NonNull;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.Range;
 import ru.nsu.gemuev.net4.SnakesProto;
+import ru.nsu.gemuev.net4.model.ports.GameMessageSender;
+import ru.nsu.gemuev.net4.model.ports.Message;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -13,31 +14,31 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-// TODO бля тупое название
 @Log4j2
-public class GameMessageConfirmingSender {
+public class PseudoReliableSender {
 
     private final List<Message> unconfirmedMessages = new ArrayList<>();
     private final GameMessageSender messageSender;
 
-    @Inject
-    public GameMessageConfirmingSender(@NonNull GameMessageSender messageSender) {
+    public PseudoReliableSender(@NonNull GameMessageSender messageSender) {
         this.messageSender = messageSender;
     }
 
     public void sendAsync(@NonNull InetAddress address,
                           @Range(from = 0, to = 65536) int port,
-                          @NonNull SnakesProto.GameMessage message,
+                          @NonNull SnakesProto.GameMessage gameMessage,
                           boolean needConfirm) {
 
         CompletableFuture.runAsync(() -> {
+            Message message = new Message(gameMessage, address, port);
+            message.setSentAt(Instant.now().toEpochMilli());
             if (needConfirm) {
                 synchronized (unconfirmedMessages) {
-                    unconfirmedMessages.add(new Message(message, address, port));
+                    unconfirmedMessages.add(message);
                 }
             }
             try {
-                messageSender.sendGameMessage(address, port, message);
+                messageSender.sendGameMessage(message);
             } catch (IOException e) {
                 log.error(e);
             }
@@ -46,11 +47,10 @@ public class GameMessageConfirmingSender {
 
     public void resendUnconfirmed(@Range(from = 0, to = Long.MAX_VALUE) long ttl) {
         synchronized (unconfirmedMessages) {
-            //System.out.println("unc: " + unconfirmedMessages.size());
             unconfirmedMessages.forEach(message -> {
                 long instant = Instant.now().toEpochMilli();
                 if (instant - message.getSentAt() > ttl) {
-                    sendAsync(message.getReceiverAddress(), message.getReceiverPort(), message.getMessage(), false);
+                    sendAsync(message.getAddress(), message.getPort(), message.getMessage(), false);
                     message.setSentAt(instant);
                 }
             });
@@ -63,7 +63,7 @@ public class GameMessageConfirmingSender {
         synchronized (unconfirmedMessages) {
             unconfirmedMessages.removeIf(message ->
                     message.getMessage().getMsgSeq() == messageSeq &&
-                            message.getReceiverAddress().equals(address) && message.getReceiverPort() == port);
+                            message.getAddress().equals(address) && message.getPort() == port);
         }
     }
 
@@ -71,7 +71,7 @@ public class GameMessageConfirmingSender {
                                           @Range(from = 0, to = 65536) int port) {
         synchronized (unconfirmedMessages) {
             unconfirmedMessages.removeIf(message ->
-                    message.getReceiverAddress().equals(address) && message.getReceiverPort() == port);
+                    message.getAddress().equals(address) && message.getPort() == port);
         }
     }
 
@@ -81,8 +81,14 @@ public class GameMessageConfirmingSender {
                                    @Range(from = 0, to = 65536) int newPort) {
         synchronized (unconfirmedMessages) {
             unconfirmedMessages.replaceAll(message ->
-                    message.getReceiverAddress().equals(oldAddress) && message.getReceiverPort()==oldPort?
+                    message.getAddress().equals(oldAddress) && message.getPort()==oldPort?
                     new Message(message.getMessage(), newAddress, newPort, message.getSentAt()) : message);
+        }
+    }
+
+    public void clear(){
+        synchronized (unconfirmedMessages){
+            unconfirmedMessages.clear();
         }
     }
 }

@@ -68,6 +68,5 @@ public class GamesListViewController implements Initializable {
     public void onJoinClicked() {
         Model model = DIContainer.getInjector().getInstance(Model.class);
         model.joinGame_(playerNameField.getText());
-        eventBus.post(new ShowGameViewEvent());
     }
 }

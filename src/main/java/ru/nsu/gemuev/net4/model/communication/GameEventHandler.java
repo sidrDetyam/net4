@@ -1,29 +1,28 @@
-package ru.nsu.gemuev.net4.model;
+package ru.nsu.gemuev.net4.model.communication;
 
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.Range;
 import ru.nsu.gemuev.net4.SnakesProto;
 import ru.nsu.gemuev.net4.mappers.*;
+import ru.nsu.gemuev.net4.model.game.Player;
 import ru.nsu.gemuev.net4.model.game.GameState;
+import ru.nsu.gemuev.net4.model.ports.Message;
 
 import java.net.InetAddress;
 import java.util.List;
 
 @Log4j2
+@RequiredArgsConstructor
 public class GameEventHandler{
 
-    private final Model model;
+    private final CommunicationModel model;
 
-    public GameEventHandler(@NonNull Model model){
-        this.model = model;
-    }
-
-    public void handle(@NonNull SnakesProto.GameMessage gameMessage,
-                       @NonNull InetAddress address,
-                       @Range(from = 0, to = 65536) int port){
-        //System.out.println(gameMessage.getMsgSeq() + " " + port + " " + gameMessage.hasPing() + " " + gameMessage.hasAck());
-        model.updateLastComm(address, port);
+    public void handle(@NonNull Message message){
+        var gameMessage = message.getMessage();
+        InetAddress address = message.getAddress();
+        int port = message.getPort();
 
         if(gameMessage.hasSteer()){
             var steer = gameMessage.getSteer();

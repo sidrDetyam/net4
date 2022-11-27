@@ -2,7 +2,7 @@ package ru.nsu.gemuev.net4.mappers;
 
 import lombok.NonNull;
 import ru.nsu.gemuev.net4.SnakesProto;
-import ru.nsu.gemuev.net4.model.Player;
+import ru.nsu.gemuev.net4.model.communication.Node;
 import ru.nsu.gemuev.net4.model.game.Coordinate;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
 import ru.nsu.gemuev.net4.model.game.GameState;
@@ -32,11 +32,11 @@ public class StateMapper {
     }
 
     public static SnakesProto.GameState model2Dto(@NonNull GameState modelState,
-                                                  @NonNull Collection<Player> modelPlayers){
+                                                  @NonNull Collection<? extends Node> nodes){
 
         return SnakesProto.GameState.newBuilder()
                 .setStateOrder(modelState.getStateOrder())
-                .setPlayers(PlayerMapper.dtoPlayers(modelPlayers))
+                .setPlayers(PlayerMapper.dtoPlayers(nodes))
                 .addAllFoods(modelState.getFoods().stream().map(CoordinateMapper::model2Dto).toList())
                 .addAllSnakes(modelState.getSnakes().stream().map(SnakeMapper::model2Dto).toList())
                 .build();

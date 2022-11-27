@@ -1,18 +1,17 @@
-package ru.nsu.gemuev.net4.model.communication;
+package ru.nsu.gemuev.net4.model.ports;
 
 import lombok.*;
 import ru.nsu.gemuev.net4.SnakesProto;
 
 import java.net.InetAddress;
 
-@RequiredArgsConstructor
 @AllArgsConstructor
+@RequiredArgsConstructor
 @Getter
-@EqualsAndHashCode
 public class Message {
     private final SnakesProto.GameMessage message;
-    private final InetAddress receiverAddress;
-    private final int receiverPort;
+    private final InetAddress address;
+    private final int port;
     @Setter
-    private long sentAt = 0;
+    private long sentAt;
 }

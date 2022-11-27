@@ -3,7 +3,7 @@ package ru.nsu.gemuev.net4.mappers;
 import lombok.NonNull;
 import ru.nsu.gemuev.net4.SnakesProto;
 import ru.nsu.gemuev.net4.model.NodeRole;
-import ru.nsu.gemuev.net4.model.Player;
+import ru.nsu.gemuev.net4.model.communication.Node;
 import ru.nsu.gemuev.net4.model.game.Direction;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
 import ru.nsu.gemuev.net4.model.game.GameState;
@@ -15,10 +15,10 @@ public class MessageMapper {
     private MessageMapper(){}
 
     public static SnakesProto.GameMessage stateOf(@NonNull GameState gameState,
-                                                  @NonNull Collection<Player> players,
+                                                  @NonNull Collection<? extends Node> nodes,
                                                   long msgSeq){
 
-        var dtoState = StateMapper.model2Dto(gameState, players);
+        var dtoState = StateMapper.model2Dto(gameState, nodes);
         return SnakesProto.GameMessage.newBuilder()
                 .setState(SnakesProto.GameMessage.StateMsg.newBuilder().setState(dtoState).build())
                 .setMsgSeq(msgSeq)
@@ -38,7 +38,7 @@ public class MessageMapper {
     }
 
     public static SnakesProto.GameMessage announcementOf(@NonNull GameConfig gameConfig,
-                                                         @NonNull Collection<Player> players,
+                                                         @NonNull Collection<? extends Node> players,
                                                          @NonNull String name,
                                                          boolean canJoin,
                                                          long msgSeq){

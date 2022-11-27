@@ -8,13 +8,12 @@ import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.Range;
 import ru.nsu.gemuev.net4.controllers.uievents.GameStateChanged;
+import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
 import ru.nsu.gemuev.net4.mappers.MessageMapper;
-import ru.nsu.gemuev.net4.model.communication.GameMessageConfirmingSender;
+import ru.nsu.gemuev.net4.model.communication.GameEventHandler;
+import ru.nsu.gemuev.net4.model.communication.PseudoReliableSender;
 import ru.nsu.gemuev.net4.model.communication.MessagesListener;
-import ru.nsu.gemuev.net4.model.game.Direction;
-import ru.nsu.gemuev.net4.model.game.GameConfig;
-import ru.nsu.gemuev.net4.model.game.GameState;
-import ru.nsu.gemuev.net4.model.game.SnakeState;
+import ru.nsu.gemuev.net4.model.game.*;
 import ru.nsu.gemuev.net4.net.MulticastReceiver;
 import ru.nsu.gemuev.net4.net.UdpSenderReceiver;
 import ru.nsu.gemuev.net4.util.DIContainer;
@@ -40,7 +39,7 @@ public class Model {
     //private final PlayersRepository playersRepository;
     private final AnnouncementGamesRepository gamesRepository;
 
-    private final GameMessageConfirmingSender gameMessageConfirmingSender;
+    private final PseudoReliableSender pseudoReliableSender;
 
     private Thread mThread;
     private Thread uThread;
@@ -74,10 +73,17 @@ public class Model {
         return me.isPresent() && me.get().getPlayerRole() == role;
     }
 
-    public synchronized void updateLastComm(@NonNull InetAddress address,
+    public synchronized boolean updateLastComm(@NonNull InetAddress address,
                                             @Range(from = 0, to = 65536) int port) {
-        findPlayerByAddress(address, port)
-                .ifPresent(player -> player.setLastComm(Instant.now().toEpochMilli()));
+        if(isGameStart) {
+            var opt =findPlayerByAddress(address, port);
+            if(opt.isEmpty()){
+                return false;
+            }
+            opt.ifPresent(player -> player.setLastComm(Instant.now().toEpochMilli()));
+            return true;
+        }
+        return false;
     }
 
     public synchronized void handleExpired() {
@@ -87,7 +93,7 @@ public class Model {
             var expired = players.stream()
                     .filter(p -> p.getId() != myId)
                     .filter(p -> instant - p.getLastComm() > delay / 10)
-                    .peek(p -> gameMessageConfirmingSender.sendAsync(p.getAddress(), p.getPort(),
+                    .peek(p -> pseudoReliableSender.sendAsync(p.getAddress(), p.getPort(),
                             MessageMapper.pingOf(p.getId(), nextMsgSeq()), false))
                     .filter(player -> instant - player.getLastComm() > 0.8 * delay)
                     .toList();
@@ -97,16 +103,18 @@ public class Model {
     }
 
     private void playerExpire(@NonNull Player player) {
+        System.out.println("expired: " + player);
+
         gameState.getSnakes().stream()
                 .filter(s -> s.getPlayerId() == player.getId()).findAny()
                 .ifPresent(s -> s.setSnakeState(SnakeState.ZOMBIE));
 
         if(isMyRole(NodeRole.MASTER)){
-            gameMessageConfirmingSender.cancelConfirmationForHost(player.getAddress(), player.getPort());
+            pseudoReliableSender.cancelConfirmationForHost(player.getAddress(), player.getPort());
             if(player.getPlayerRole() == NodeRole.DEPUTY){
                 findPlayerByRole(NodeRole.NORMAL).ifPresent(p -> {
                     p.setPlayerRole(NodeRole.DEPUTY);
-                    gameMessageConfirmingSender.sendAsync(p.getAddress(), p.getPort(),
+                    pseudoReliableSender.sendAsync(p.getAddress(), p.getPort(),
                             MessageMapper.roleChangedOf(NodeRole.MASTER, NodeRole.DEPUTY, myId, p.getId(), nextMsgSeq()),
                             true);
                 });
@@ -116,17 +124,17 @@ public class Model {
         if(isMyRole(NodeRole.NORMAL) && player.getPlayerRole() == NodeRole.MASTER){
             var deputy = findPlayerByRole(NodeRole.DEPUTY)
                     .orElseThrow(() -> new IllegalStateException("No deputy"));
-            gameMessageConfirmingSender
+            pseudoReliableSender
                     .replaceDestination(player.getAddress(), player.getPort(), deputy.getAddress(), deputy.getPort());
             deputy.setPlayerRole(NodeRole.MASTER);
         }
 
         if(isMyRole(NodeRole.DEPUTY) && player.getPlayerRole()==NodeRole.MASTER){
-            gameMessageConfirmingSender.cancelConfirmationForHost(player.getAddress(), player.getPort());
+            pseudoReliableSender.cancelConfirmationForHost(player.getAddress(), player.getPort());
             var me = findPlayerById(myId)
                     .orElseThrow(() -> new IllegalStateException("меня нет"));
             me.setPlayerRole(NodeRole.MASTER);
-            players.forEach(p -> gameMessageConfirmingSender.sendAsync(
+            players.forEach(p -> pseudoReliableSender.sendAsync(
                     p.getAddress(), p.getPort(),
                     MessageMapper.roleChangedOf(NodeRole.MASTER, p.getPlayerRole(), myId, p.getId(), nextMsgSeq()),
                     true));
@@ -147,7 +155,7 @@ public class Model {
         multicastListener = new MessagesListener(multicastReceiver, eventHandler);
         unicastListener = new MessagesListener(udpSenderReceiver, eventHandler);
 
-        gameMessageConfirmingSender = new GameMessageConfirmingSender(udpSenderReceiver);
+        pseudoReliableSender = new PseudoReliableSender(udpSenderReceiver);
 
         mThread = new Thread(multicastListener);
         uThread = new Thread(unicastListener);
@@ -156,6 +164,12 @@ public class Model {
 
         gameSchedule.scheduleAtFixedRate(this::announceGame, 0, 1000, TimeUnit.MILLISECONDS);
         gameSchedule.scheduleAtFixedRate(() -> gamesRepository.deleteExpiredGames(2000), 0, 1000, TimeUnit.MILLISECONDS);
+
+        var random = new Random();
+        id = -1;
+        while(id < 0) {
+            id = random.nextInt();
+        }
     }
 
     ScheduledExecutorService gameSchedule = new ScheduledThreadPoolExecutor(2);
@@ -171,7 +185,7 @@ public class Model {
 
     public synchronized void resend() {
         if (isGameStart) {
-            gameMessageConfirmingSender.resendUnconfirmed(gameConfig.delay() / 10);
+            pseudoReliableSender.resendUnconfirmed(gameConfig.delay() / 10);
         }
     }
 
@@ -192,16 +206,18 @@ public class Model {
 
 
     public synchronized void newGame(@NonNull GameConfig gameConfig, @NonNull String playerName) {
+        players.clear();
+        pseudoReliableSender.clear();
         gameState = new GameState(gameConfig);
         this.gameConfig = gameConfig;
         Player player = new Player(playerName, nextId(),
                 udpSenderReceiver.getLocalAddress(), udpSenderReceiver.getLocalPort(), NodeRole.MASTER, 0, 0);
-        players.clear();
         players.add(player);
         gameState.addPlayer(player.getId());
         myId = player.getId();
-        startDaemons();
         isGameStart = true;
+        startDaemons();
+        eventBus.post(new ShowGameViewEvent());
     }
 
     public synchronized void steer(@NonNull Direction direction) {
@@ -211,16 +227,21 @@ public class Model {
             if (master.getId() == myId) {
                 gameState.steer(myId, direction);
             } else {
-                gameMessageConfirmingSender.sendAsync(master.getAddress(), master.getPort(),
+                pseudoReliableSender.sendAsync(master.getAddress(), master.getPort(),
                         MessageMapper.steerOf(direction, myId, nextMsgSeq()), true);
             }
         }
     }
 
+    public synchronized boolean getIsGameStart(){
+        return isGameStart;
+    }
+
     public synchronized void stopGame() {
-        scheduler.shutdown();
-        scheduler = new ScheduledThreadPoolExecutor(5);
         isGameStart = false;
+        scheduler.shutdown();
+        pseudoReliableSender.clear();
+        scheduler = new ScheduledThreadPoolExecutor(5);
     }
 
     public synchronized List<Player> getPlayers() {
@@ -241,7 +262,7 @@ public class Model {
             eventBus.post(new GameStateChanged(gameState));
             players.forEach(player -> {
                 if (player.getPlayerRole() != NodeRole.MASTER) {
-                    gameMessageConfirmingSender.sendAsync(player.getAddress(), player.getPort(),
+                    pseudoReliableSender.sendAsync(player.getAddress(), player.getPort(),
                             MessageMapper.stateOf(gameState, getPlayers(), nextMsgSeq()), true);
                 }
             });
@@ -250,8 +271,9 @@ public class Model {
 
     @SneakyThrows
     public synchronized void announceGame() {
+        System.out.println(players + " " + myId);
         if (isGameStart && isMyRole(NodeRole.MASTER)) {
-            gameMessageConfirmingSender.sendAsync(InetAddress.getByName("239.192.0.4"), 9193,
+            pseudoReliableSender.sendAsync(InetAddress.getByName("239.192.0.4"), 9193,
                     MessageMapper.announcementOf(gameConfig, getPlayers(),
                             "game name",
                             true,
@@ -260,11 +282,24 @@ public class Model {
         }
     }
 
+    private boolean bred = false;
+
     public synchronized void joinGame_(@NonNull String playerName) {
-        gamesRepository.getRepository().keySet().stream().findFirst().ifPresent(entry -> {
+        newGame(new GameConfig(40, 30, 3, 100), "хуй");
+        stopGame();
+        var opt = gamesRepository.getRepository().keySet().stream().findFirst();
+        if(opt.isEmpty()){
+            System.out.println("Игры нет");
+            return;
+        }
+
+        opt.ifPresent(entry -> {
+            players.clear();
+            pseudoReliableSender.clear();
             var msg = MessageMapper.joinOf(entry.gameName(), playerName, NodeRole.NORMAL, nextMsgSeq());
-            gameMessageConfirmingSender.sendAsync(entry.senderAddress(), entry.senderPort(), msg, true);
+            pseudoReliableSender.sendAsync(entry.senderAddress(), entry.senderPort(), msg, true);
             gameConfig = entry.gameConfig();
+            bred = true;
         });
     }
 
@@ -277,9 +312,11 @@ public class Model {
 
         var playerOpt = findPlayerByAddress(senderAddress, senderPort);
         if (isGameStart && playerOpt.isPresent() && isMyRole(NodeRole.MASTER)) {
-            gameState.steer(playerOpt.get().getId(), newDirection);
-            gameMessageConfirmingSender
-                    .sendAsync(senderAddress, senderPort, MessageMapper.ackOf(0, messageSeq), false);
+            updateLastComm(senderAddress, senderPort);
+            int id = playerOpt.get().getId();
+            gameState.steer(id, newDirection);
+            pseudoReliableSender
+                    .sendAsync(senderAddress, senderPort, MessageMapper.ackOf(id, messageSeq), false);
         }
     }
 
@@ -289,7 +326,12 @@ public class Model {
                                           @NonNull InetAddress senderAddress,
                                           @Range(from = 0, to = 65536) int senderPort) {
 
-        if (isGameStart && (gameState==null || newState.getStateOrder() > gameState.getStateOrder())) {
+        var playerOpt = findPlayerByAddress(senderAddress, senderPort);
+        //pseudoReliableSender.sendAsync(senderAddress, senderPort, MessageMapper.ackOf(0, messageSeq), false);
+        if (isGameStart && playerOpt.isPresent() && playerOpt.get().getPlayerRole() == NodeRole.MASTER &&
+                (gameState==null || newState.getStateOrder() > gameState.getStateOrder())) {
+            updateLastComm(senderAddress, senderPort);
+
             gameState = newState;
             this.players.clear();
             this.players.addAll(players);
@@ -297,8 +339,9 @@ public class Model {
                 master.setPort(senderPort);
                 master.setAddress(senderAddress);
             });
-            gameMessageConfirmingSender
-                    .sendAsync(senderAddress, senderPort, MessageMapper.ackOf(0, messageSeq), false);
+            int id = playerOpt.get().getId();
+            pseudoReliableSender
+                    .sendAsync(senderAddress, senderPort, MessageMapper.ackOf(id, messageSeq), false);
             eventBus.post(new GameStateChanged(newState));
         }
     }
@@ -308,18 +351,22 @@ public class Model {
                                          long messageSeq,
                                          @NonNull InetAddress address,
                                          @Range(from = 0, to = 65536) int port) {
-
         var playerOpt = findPlayerByAddress(address, port);
-        if (isGameStart && isMyRole(NodeRole.MASTER) && playerOpt.isEmpty()) {
+        if(playerOpt.isPresent()){
+            pseudoReliableSender.sendAsync(address, port,
+                    MessageMapper.ackOf(playerOpt.get().getId(), messageSeq), false);
+            return;
+        }
+        if (isGameStart && isMyRole(NodeRole.MASTER)) {
             Player player = new Player(name, nextId(), address, port, role, 0, Instant.now().toEpochMilli());
             if (role != NodeRole.VIEWER) {
-                if(players.size() == 1){
+                if(findPlayerByRole(NodeRole.DEPUTY).isEmpty()){
                     player.setPlayerRole(NodeRole.DEPUTY);
                 }
                 gameState.addPlayer(player.getId());
             }
             players.add(player);
-            gameMessageConfirmingSender.sendAsync(address, port,
+            pseudoReliableSender.sendAsync(address, port,
                     MessageMapper.ackOf(player.getId(), messageSeq), false);
         }
     }
@@ -328,20 +375,31 @@ public class Model {
                                         long messageSeq,
                                         @NonNull InetAddress address,
                                         @Range(from = 0, to = 65536) int port) {
-        gameMessageConfirmingSender.confirm(address, port, messageSeq);
-        if (!isGameStart) {
-            isGameStart = true;
+        pseudoReliableSender.confirm(address, port, messageSeq);
+
+        var opt = findPlayerByAddress(address, port);
+        updateLastComm(address, port);
+
+        if (!isGameStart && bred) {
+            players.clear();
+            players.add(new Player("", 0, address, port, NodeRole.MASTER, 0, Instant.now().toEpochMilli()));
             myId = receiverId;
             startDaemons();
+            isGameStart = true;
+            bred = false;
+            eventBus.post(new ShowGameViewEvent());
         }
     }
 
     public synchronized void pingMessage(long messageSeq,
                                          @NonNull InetAddress address,
                                          @Range(from = 0, to = 65536) int port) {
-        if (isGameStart) {
-            gameMessageConfirmingSender
-                    .sendAsync(address, port, MessageMapper.ackOf(0, messageSeq), false);
+        var playerOpt = findPlayerByAddress(address, port);
+        if (isGameStart && playerOpt.isPresent()) {
+            updateLastComm(address, port);
+            int id = playerOpt.get().getId();
+            pseudoReliableSender
+                    .sendAsync(address, port, MessageMapper.ackOf(id, messageSeq), false);
         }
     }
 
@@ -359,7 +417,7 @@ public class Model {
         if (isGameStart) {
             findPlayerById(senderId).ifPresent(p -> p.setPlayerRole(senderRole));
             findPlayerById(receiverId).ifPresent(p -> p.setPlayerRole(receiverRole));
-            gameMessageConfirmingSender
+            pseudoReliableSender
                     .sendAsync(address, port, MessageMapper.ackOf(senderId, messageSeq), false);
         }
     }

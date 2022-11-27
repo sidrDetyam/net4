@@ -3,7 +3,8 @@ package ru.nsu.gemuev.net4.mappers;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import ru.nsu.gemuev.net4.SnakesProto;
-import ru.nsu.gemuev.net4.model.Player;
+import ru.nsu.gemuev.net4.model.communication.Node;
+import ru.nsu.gemuev.net4.model.game.Player;
 
 import java.net.InetAddress;
 import java.time.Instant;
@@ -15,38 +16,39 @@ public class PlayerMapper {
     private PlayerMapper(){}
 
     @SneakyThrows
-    public static Player dto2Model(@NonNull SnakesProto.GamePlayer dtoPlayer){
-        return new Player(
-                dtoPlayer.getName(),
-                dtoPlayer.getId(),
+    public static Node dto2Model(@NonNull SnakesProto.GamePlayer dtoPlayer){
+        return new Node(
+                new Player(dtoPlayer.getName(), dtoPlayer.getId()),
                 InetAddress.getByName(dtoPlayer.getIpAddress()),
                 dtoPlayer.getPort(),
                 NodeRoleMapper.dto2Model(dtoPlayer.getRole()),
-                dtoPlayer.getScore(),
                 Instant.now().toEpochMilli());
     }
 
-    public static SnakesProto.GamePlayer model2Dto(@NonNull Player modelPlayer){
+    public static SnakesProto.GamePlayer model2Dto(@NonNull Node node){
         var builder = SnakesProto.GamePlayer
                 .newBuilder()
-                .setName(modelPlayer.getName())
-                .setId(modelPlayer.getId())
-                .setPort(modelPlayer.getPort())
-                .setRole(NodeRoleMapper.model2Dto(modelPlayer.getPlayerRole()))
-                .setScore(modelPlayer.getKilled());
-        if(modelPlayer.getAddress() != null){
-            builder.setIpAddress(modelPlayer.getAddress().getHostAddress());
+                .setName(node.getPlayer().getName())
+                .setId(node.getPlayerId())
+                .setPort(node.getPort())
+                .setRole(NodeRoleMapper.model2Dto(node.getRole()))
+                .setScore(0);
+        if(node.getAddress() != null){
+            builder.setIpAddress(node.getAddress().getHostAddress());
+        }
+        else{
+            builder.setIpAddress("");
         }
         return builder.build();
     }
 
-    public static SnakesProto.GamePlayers dtoPlayers(@NonNull Collection<? extends Player> players){
+    public static SnakesProto.GamePlayers dtoPlayers(@NonNull Collection<? extends Node> nodes){
         return SnakesProto.GamePlayers.newBuilder()
-                .addAllPlayers(players.stream().map(PlayerMapper::model2Dto).toList())
+                .addAllPlayers(nodes.stream().map(PlayerMapper::model2Dto).toList())
                 .build();
     }
 
-    public static List<Player> modelPlayers(@NonNull SnakesProto.GamePlayers dtoPlayers){
+    public static List<Node> nodes(@NonNull SnakesProto.GamePlayers dtoPlayers){
         return dtoPlayers.getPlayersList().stream()
                 .map(PlayerMapper::dto2Model).toList();
     }
