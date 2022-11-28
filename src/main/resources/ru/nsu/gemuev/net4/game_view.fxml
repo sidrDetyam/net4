@@ -3,10 +3,16 @@
 <?import javafx.scene.canvas.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-<AnchorPane onKeyPressed="#onKeyPressed" prefHeight="550.0" prefWidth="751.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.nsu.gemuev.net4.controllers.GameViewController">
+<AnchorPane onKeyPressed="#onKeyPressed" prefHeight="550.0" prefWidth="709.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.nsu.gemuev.net4.controllers.GameViewController">
 
-   <Button layoutX="299.0" layoutY="511.0" mnemonicParsing="false" onAction="#onBackClicked" text="Button" />
+   <Button layoutX="355.0" layoutY="510.0" mnemonicParsing="false" onAction="#onBackClicked" text="Leave" />
    <Canvas fx:id="canvas" height="500.0" layoutX="5.0" layoutY="5.0" width="500.0" />
-   <ListView fx:id="topList" layoutX="512.0" layoutY="53.0" prefHeight="443.0" prefWidth="193.0" scaleShape="false" />
+   <ListView fx:id="topList" layoutX="510.0" layoutY="30.0" prefHeight="475.0" prefWidth="194.0" scaleShape="false" />
+   <Label layoutX="586.0" layoutY="-1.0" text="Top">
+      <font>
+         <Font name="Consolas" size="25.0" />
+      </font>
+   </Label>
 </AnchorPane>

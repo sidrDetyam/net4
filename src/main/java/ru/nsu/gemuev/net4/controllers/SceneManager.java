@@ -36,7 +36,7 @@ public class SceneManager {
 
     public SceneManager() {
         try {
-            gameScene = new Scene(loadFXML("game_view.fxml"), 650, 550);
+            gameScene = new Scene(loadFXML("game_view.fxml"), 709, 550);
             mainScene = new Scene(loadFXML("main_view.fxml"), 600, 400);
             configScene = new Scene(loadFXML("config_view.fxml"), 600, 400);
             gamesListScene = new Scene(loadFXML("game_list_view.fxml"), 600, 400);

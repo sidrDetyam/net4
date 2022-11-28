@@ -2,11 +2,14 @@ package ru.nsu.gemuev.net4.model.game;
 
 import lombok.Getter;
 import lombok.NonNull;
+import ru.nsu.gemuev.net4.model.game.presentation.Cell;
+import ru.nsu.gemuev.net4.model.game.presentation.CellType;
+import ru.nsu.gemuev.net4.model.game.presentation.FieldPresenter;
 
 import java.util.*;
 
 
-//TODO возвращать неизменяемые-обертки,
+//TODO возвращать неизменяемые обертки
 public class GameState {
 
     private final List<Player> players = new ArrayList<>();
@@ -30,9 +33,9 @@ public class GameState {
     }
 
     public GameState(@NonNull GameConfig gameConfig,
-                     @NonNull Collection<Snake> snakes,
-                     @NonNull Collection<Player> players,
-                     @NonNull Collection<Coordinate> foods,
+                     @NonNull Collection<? extends Snake> snakes,
+                     @NonNull Collection<? extends Player> players,
+                     @NonNull Collection<? extends Coordinate> foods,
                      int stateOrder) {
         this.snakes.addAll(snakes);
         this.players.addAll(players);
@@ -48,42 +51,21 @@ public class GameState {
 
     private void generateFood() {
         Random random = new Random();
-        var field = fieldPresentation();
+        var field = FieldPresenter.fieldPresentation(this);
         while (foods.size() < gameConfig.foodStatic()) {
             int x = random.nextInt(gameConfig.width());
             int y = random.nextInt(gameConfig.height());
-            if (field[x][y] == Cell.FREE) {
-                field[x][y] = Cell.FOOD;
+            if (field[x][y].getType() == CellType.FREE) {
+                field[x][y] = new Cell(CellType.FOOD, -1);
                 foods.add(new Coordinate(x, y));
             }
         }
     }
 
-    public Cell[][] fieldPresentation() {
-        var field = new Cell[gameConfig.width()][gameConfig.height()];
-        for (int i = 0; i < gameConfig.width(); ++i) {
-            for (int j = 0; j < gameConfig.height(); ++j) {
-                field[i][j] = Cell.FREE;
-            }
-        }
-
-        for (var snake : snakes) {
-            for (var segment : snake.getBody()) {
-                field[segment.getCoordinate().x()][segment.getCoordinate().y()] = Cell.SNAKE_BODY;
-            }
-        }
-
-        for (var food : foods) {
-            field[food.x()][food.y()] = Cell.FOOD;
-        }
-
-        return field;
-    }
-
     private boolean isAreaWithoutSnakes(Cell[][] field, int leftX, int topY) {
         for (int x = leftX; x < leftX + 5; ++x) {
             for (int y = topY; y < topY + 5; ++y) {
-                if (field[x][y] == Cell.SNAKE_BODY) {
+                if (field[x][y].getType() == CellType.SNAKE_BODY) {
                     return false;
                 }
             }
@@ -92,11 +74,11 @@ public class GameState {
     }
 
     public boolean addPlayer(@NonNull Player player) {
-        var field = fieldPresentation();
+        var field = FieldPresenter.fieldPresentation(this);
         for (int i = 0; i < gameConfig.width() - 4; ++i) {
             for (int j = 0; j < gameConfig.height() - 4; ++j) {
-                if (isAreaWithoutSnakes(field, i, j) && field[i + 2][j + 2] == Cell.FREE
-                        && field[i + 2][j + 3] == Cell.FREE) {
+                if (isAreaWithoutSnakes(field, i, j) && field[i + 2][j + 2].getType() == CellType.FREE
+                        && field[i + 2][j + 3].getType() == CellType.FREE) {
 
                     Snake snake = new Snake(gameConfig.width(), gameConfig.height(),
                             Direction.UP, new Coordinate(i + 2, j + 2), player.getId());
@@ -113,7 +95,7 @@ public class GameState {
     public void steer(int snakeId,
                       @NonNull Direction newDirection) {
         snakes.stream()
-                .filter(snake -> snake.getPlayerId() == snakeId)
+                .filter(snake -> snake.getPlayerId() == snakeId && snake.getSnakeState() == SnakeState.ALIVE)
                 .findAny()
                 .ifPresent(snake -> snake.setHeadDirection(newDirection));
     }
@@ -140,7 +122,7 @@ public class GameState {
         return players.stream().filter(player -> player.getId() == playerId).findAny();
     }
 
-    public List<Murder> nextState() {
+    public void nextState() {
         Set<Coordinate> ateFoods = new HashSet<>();
         for (Snake snake : snakes) {
             snake.forward();
@@ -164,9 +146,9 @@ public class GameState {
 
         deadSnakes.forEach(dead -> {
             players.removeIf(player -> player.getId() == dead.getPlayerId());
-            for(var seg : dead.getBody()){
+            for(int i=1; i<dead.getBody().size(); ++i){
                 if(random.nextBoolean()){
-                    foods.add(seg.getCoordinate());
+                    foods.add(dead.getBody().get(i).getCoordinate());
                 }
             }
         });
@@ -174,7 +156,6 @@ public class GameState {
 
         generateFood();
         ++stateOrder;
-        return murders;
     }
 
     public void playerLeave(int playerId){

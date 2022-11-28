@@ -111,4 +111,16 @@ public class MessageMapper {
                 .setSenderId(senderId)
                 .build();
     }
+
+    public static SnakesProto.GameMessage errorOf(@NonNull String cause,
+                                                  long msgSeq){
+        var msg = SnakesProto.GameMessage.ErrorMsg
+                .newBuilder()
+                .setErrorMessage(cause)
+                .build();
+        return SnakesProto.GameMessage.newBuilder()
+                .setError(msg)
+                .setMsgSeq(msgSeq)
+                .build();
+    }
 }

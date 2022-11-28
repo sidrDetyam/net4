@@ -158,7 +158,8 @@ public class CommunicationModel {
 
     @SneakyThrows
     private synchronized void announceGame() {
-        System.out.println(nodes.getNodes());
+        //System.out.println(nodes.getNodes());
+        System.out.println(currentGameState.getPlayers());
         if (isMyRole(NodeRole.MASTER)) {
             sender.sendAsync(InetAddress.getByName("239.192.0.4"), 9193,
                     MessageMapper.announcementOf(currentGameState.getGameConfig(), nodes.getNodes(),
@@ -221,14 +222,18 @@ public class CommunicationModel {
         if (isMyRole(NodeRole.MASTER)) {
             Player player = new Player(name, idGenerator.nextId());
             Node node = new Node(player, address, port, role, Instant.now().toEpochMilli());
-            if (role != NodeRole.VIEWER) {
-                if (nodes.findNodeByRole(NodeRole.DEPUTY).isEmpty()) {
-                    node.setRole(NodeRole.DEPUTY);
+            if(currentGameState.addPlayer(player)){
+                if (role != NodeRole.VIEWER) {
+                    if (nodes.findNodeByRole(NodeRole.DEPUTY).isEmpty()) {
+                        node.setRole(NodeRole.DEPUTY);
+                    }
                 }
-                currentGameState.addPlayer(player);
+                nodes.addNode(node);
+                sender.sendAsync(address, port, MessageMapper.ackOf(player.getId(), messageSeq), false);
             }
-            nodes.addNode(node);
-            sender.sendAsync(address, port, MessageMapper.ackOf(player.getId(), messageSeq), false);
+            else{
+                sender.sendAsync(address, port, MessageMapper.errorOf("Can`t find place", nextMsgSeq()), false);
+            }
         }
     }
 

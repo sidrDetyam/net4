@@ -33,8 +33,8 @@ public class DIModule extends AbstractModule {
 
     @Provides
     @Singleton
-    MainViewController getMainViewController(EventBus eventBus) {
-        var controller = new MainViewController(eventBus);
+    MainViewController getMainViewController(Model model, EventBus eventBus) {
+        var controller = new MainViewController(model, eventBus);
         eventBus.register(controller);
         return controller;
     }
