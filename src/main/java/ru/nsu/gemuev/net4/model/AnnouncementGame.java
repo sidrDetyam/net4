@@ -28,6 +28,12 @@ public record AnnouncementGame(@NonNull InetAddress senderAddress,
 
     @Override
     public String toString(){
-        return String.format("[%s, %d] Players: %d", senderAddress.getHostAddress(), senderPort, countOfPlayers);
+        return String.format("%s [Players: %d, Width: %d, Height: %d, Food: %d, Delay: %d]",
+                gameName,
+                countOfPlayers,
+                gameConfig().width(),
+                gameConfig().height(),
+                gameConfig().foodStatic(),
+                gameConfig.delay());
     }
 }

@@ -5,6 +5,8 @@ import lombok.NonNull;
 
 import java.util.*;
 
+
+//TODO возвращать неизменяемые-обертки,
 public class GameState {
 
     private final List<Player> players = new ArrayList<>();
@@ -23,11 +25,17 @@ public class GameState {
         return Collections.unmodifiableList(foods);
     }
 
+    public List<Player> getPlayers(){
+        return Collections.unmodifiableList(players);
+    }
+
     public GameState(@NonNull GameConfig gameConfig,
                      @NonNull Collection<Snake> snakes,
+                     @NonNull Collection<Player> players,
                      @NonNull Collection<Coordinate> foods,
                      int stateOrder) {
         this.snakes.addAll(snakes);
+        this.players.addAll(players);
         this.foods.addAll(foods);
         this.gameConfig = gameConfig;
         this.stateOrder = stateOrder;
@@ -128,6 +136,10 @@ public class GameState {
         return murders;
     }
 
+    public Optional<Player> findPlayerById(int playerId){
+        return players.stream().filter(player -> player.getId() == playerId).findAny();
+    }
+
     public List<Murder> nextState() {
         Set<Coordinate> ateFoods = new HashSet<>();
         for (Snake snake : snakes) {
@@ -136,6 +148,7 @@ public class GameState {
             if (foods.contains(headCoord)) {
                 snake.grow();
                 ateFoods.add(headCoord);
+                findPlayerById(snake.getPlayerId()).ifPresent(Player::increaseScore);
             }
         }
         foods.removeAll(ateFoods);
@@ -143,12 +156,14 @@ public class GameState {
         List<Murder> murders = findMurders();
         Random random = new Random();
         List<Snake> deadSnakes = murders.stream()
+                .peek(murder -> findPlayerById(murder.killerId()).ifPresent(Player::increaseScore))
                 .map(Murder::victimId)
                 .distinct()
                 .flatMap(victim -> snakes.stream()
                         .filter(s -> s.getPlayerId() == victim)).toList();
 
         deadSnakes.forEach(dead -> {
+            players.removeIf(player -> player.getId() == dead.getPlayerId());
             for(var seg : dead.getBody()){
                 if(random.nextBoolean()){
                     foods.add(seg.getCoordinate());
@@ -156,7 +171,6 @@ public class GameState {
             }
         });
         snakes.removeAll(deadSnakes);
-        //players.removeAll(deadSnakes.stream().map(sn))
 
         generateFood();
         ++stateOrder;

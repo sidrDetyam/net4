@@ -32,6 +32,7 @@ public class CommunicationModel {
     private int msgSeq;
     private final IdGenerator idGenerator = new IdGenerator();
     private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(5);
+    private final String gameName;
     private GameState currentGameState;
 
     public synchronized GameConfig getGameConfig() {
@@ -42,8 +43,10 @@ public class CommunicationModel {
                        @NonNull GameMessageSender sender,
                        @NonNull Node master,
                        @NonNull Node me,
-                       @NonNull GameConfig gameConfig) {
+                       @NonNull GameConfig gameConfig,
+                       @NonNull String gameName) {
         this.eventBus = DIContainer.getInjector().getInstance(EventBus.class);
+        this.gameName = gameName;
         listenerThread = new Thread(new MessagesListener(receiver, new GameMessageHandler(this)));
         listenerThread.start();
         this.sender = new PseudoReliableSender(sender);
@@ -92,9 +95,9 @@ public class CommunicationModel {
             if (node.getRole() == NodeRole.DEPUTY) {
                 nodes.findNodeByRole(NodeRole.NORMAL).ifPresent(p -> {
                     p.setRole(NodeRole.DEPUTY);
-                    sender.sendAsync(p.getAddress(), p.getPort(),
-                            MessageMapper.roleChangedOf(NodeRole.MASTER, NodeRole.DEPUTY, myId, p.getPlayerId(), nextMsgSeq()),
-                            true);
+//                    sender.sendAsync(p.getAddress(), p.getPort(),
+//                            MessageMapper.roleChangedOf(NodeRole.MASTER, NodeRole.DEPUTY, myId, p.getPlayerId(), nextMsgSeq()),
+//                            true);
                 });
             }
         }
@@ -111,6 +114,12 @@ public class CommunicationModel {
             nodes.findNodeById(myId)
                     .orElseThrow(() -> new IllegalStateException("Cannot find myself"))
                     .setRole(NodeRole.MASTER);
+            nodes.findNodeByRole(NodeRole.NORMAL).ifPresent(n -> {
+                n.setRole(NodeRole.DEPUTY);
+//                sender.sendAsync(n.getAddress(), n.getPort(),
+//                        MessageMapper.roleChangedOf(NodeRole.MASTER, NodeRole.DEPUTY, myId, n.getPlayerId(), nextMsgSeq()),
+//                        true);
+            });
             nodes.getNodes().forEach(n ->
                     sender.sendAsync(n.getAddress(), n.getPort(),
                             MessageMapper.roleChangedOf(NodeRole.MASTER, n.getRole(), myId, n.getPlayerId(), nextMsgSeq()),
@@ -153,7 +162,7 @@ public class CommunicationModel {
         if (isMyRole(NodeRole.MASTER)) {
             sender.sendAsync(InetAddress.getByName("239.192.0.4"), 9193,
                     MessageMapper.announcementOf(currentGameState.getGameConfig(), nodes.getNodes(),
-                            "game name",
+                            gameName,
                             true,
                             nextMsgSeq()),
                     false);

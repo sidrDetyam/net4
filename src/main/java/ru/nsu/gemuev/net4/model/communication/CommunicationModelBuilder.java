@@ -26,9 +26,9 @@ public class CommunicationModelBuilder {
 
     private final GameMessageReceiver receiver;
     private final GameMessageSender sender;
+    private final String playerName;
 
-    public CommunicationModel joinToGame(@NonNull String playerName,
-                                         @NonNull NodeRole role,
+    public CommunicationModel joinToGame(NodeRole role,
                                          @NonNull AnnouncementGame announcementGame) throws JoinGameException {
         try {
             SnakesProto.GameMessage joinMsg = MessageMapper
@@ -48,7 +48,7 @@ public class CommunicationModelBuilder {
                         Node me = new Node(new Player("", response.getMessage().getReceiverId()),
                                 InetAddress.getLocalHost(), 0, role, instant);
                         return new CommunicationModel(receiver, sender,
-                                master, me, announcementGame.gameConfig());
+                                master, me, announcementGame.gameConfig(), announcementGame.gameName());
                     }
 
                     if(response.getMessage().hasError()){
@@ -73,11 +73,10 @@ public class CommunicationModelBuilder {
 
     @SneakyThrows
     public CommunicationModel createGame(@NonNull String gameName,
-                                         @NonNull String playerName,
                                          @NonNull GameConfig gameConfig){
         Node master = new Node(new Player(playerName, 0),
                 InetAddress.getLocalHost(), 0, NodeRole.MASTER, 0);
         return new CommunicationModel(receiver, sender,
-                master, master, gameConfig);
+                master, master, gameConfig, gameName);
     }
 }

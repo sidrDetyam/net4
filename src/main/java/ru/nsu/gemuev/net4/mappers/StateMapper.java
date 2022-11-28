@@ -3,14 +3,12 @@ package ru.nsu.gemuev.net4.mappers;
 import lombok.NonNull;
 import ru.nsu.gemuev.net4.SnakesProto;
 import ru.nsu.gemuev.net4.model.communication.Node;
-import ru.nsu.gemuev.net4.model.game.Coordinate;
-import ru.nsu.gemuev.net4.model.game.GameConfig;
-import ru.nsu.gemuev.net4.model.game.GameState;
-import ru.nsu.gemuev.net4.model.game.Snake;
+import ru.nsu.gemuev.net4.model.game.*;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class StateMapper {
 
@@ -19,16 +17,21 @@ public class StateMapper {
     public static GameState dto2Model(@NonNull SnakesProto.GameState dtoState,
                                       @NonNull GameConfig gameConfig){
 
-        List<Snake> snakes = new ArrayList<>();
-        for(var dtoSnake : dtoState.getSnakesList()){
-            snakes.add(SnakeMapper.dto2Model(dtoSnake, gameConfig.width(), gameConfig.height()));
-        }
-        List<Coordinate> foods = new ArrayList<>();
-        for(var dtoFood : dtoState.getFoodsList()){
-            foods.add(CoordinateMapper.dto2Model(dtoFood));
-        }
+        List<Snake> snakes = dtoState.getSnakesList().stream()
+                .map(dtoSnake -> SnakeMapper.dto2Model(dtoSnake, gameConfig.width(), gameConfig.height()))
+                .collect(Collectors.toList());
+        Set<Integer> snakesId = snakes.stream().map(Snake::getPlayerId).collect(Collectors.toSet());
 
-        return new GameState(gameConfig, snakes, foods, dtoState.getStateOrder());
+        List<Coordinate> foods = dtoState.getFoodsList().stream()
+                .map(CoordinateMapper::dto2Model)
+                .toList();
+
+        List<Player> players = PlayerMapper.nodes(dtoState.getPlayers()).stream()
+                .map(Node::getPlayer)
+                .filter(player -> snakesId.contains(player.getId()))
+                .toList();
+
+        return new GameState(gameConfig, snakes, players, foods, dtoState.getStateOrder());
     }
 
     public static SnakesProto.GameState model2Dto(@NonNull GameState modelState,

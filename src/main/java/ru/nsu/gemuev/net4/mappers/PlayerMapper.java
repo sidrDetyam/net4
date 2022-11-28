@@ -17,8 +17,10 @@ public class PlayerMapper {
 
     @SneakyThrows
     public static Node dto2Model(@NonNull SnakesProto.GamePlayer dtoPlayer){
+        Player player = new Player(dtoPlayer.getName(), dtoPlayer.getId());
+        player.setScore(dtoPlayer.getScore());
         return new Node(
-                new Player(dtoPlayer.getName(), dtoPlayer.getId()),
+                player,
                 InetAddress.getByName(dtoPlayer.getIpAddress()),
                 dtoPlayer.getPort(),
                 NodeRoleMapper.dto2Model(dtoPlayer.getRole()),
@@ -32,7 +34,7 @@ public class PlayerMapper {
                 .setId(node.getPlayerId())
                 .setPort(node.getPort())
                 .setRole(NodeRoleMapper.model2Dto(node.getRole()))
-                .setScore(0);
+                .setScore(node.getPlayer().getScore());
         if(node.getAddress() != null){
             builder.setIpAddress(node.getAddress().getHostAddress());
         }

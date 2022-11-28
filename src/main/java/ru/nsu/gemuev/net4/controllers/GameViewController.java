@@ -4,10 +4,13 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.control.ListView;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import lombok.NonNull;
@@ -16,21 +19,29 @@ import ru.nsu.gemuev.net4.controllers.uievents.GameStateChanged;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowConfigViewEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowMainViewEvent;
+import ru.nsu.gemuev.net4.model.AnnouncementGame;
 import ru.nsu.gemuev.net4.model.Model;
 import ru.nsu.gemuev.net4.model.game.Direction;
 import ru.nsu.gemuev.net4.model.game.GameState;
+import ru.nsu.gemuev.net4.model.game.Player;
 
 import java.net.URL;
+import java.util.List;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 
 @Log4j2
 public class GameViewController implements Initializable {
 
+    private static final int WIDTH = 500;
+
     private final Model model;
     private final EventBus eventBus;
+
+    @FXML
+    public ListView<String> topList;
     @FXML
     private Canvas canvas;
-    private static int WIDTH = 600;
 
     @Inject
     public GameViewController(EventBus eventBus, Model model){
@@ -61,7 +72,6 @@ public class GameViewController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        //drawBackground();
     }
 
     @Subscribe
@@ -71,7 +81,13 @@ public class GameViewController implements Initializable {
 
     @Subscribe
     public void onNextState(@NonNull GameStateChanged newState){
-        Platform.runLater(() -> drawBackground(newState.getGameState()));
+        Platform.runLater(() -> {
+            ObservableList<String> items = FXCollections.observableArrayList(List.copyOf(
+                    newState.getGameState().getPlayers().stream()
+                            .map(Player::toString).collect(Collectors.toList())));
+            topList.setItems(items);
+            drawBackground(newState.getGameState());
+        });
     }
 
     private void drawBackground(@NonNull GameState gameState) {

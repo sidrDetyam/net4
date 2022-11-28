@@ -5,11 +5,12 @@
 
 <AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.nsu.gemuev.net4.controllers.ConfigViewController">
 
-   <TextField fx:id="width" layoutX="215.0" layoutY="48.0" text="40" />
-   <TextField fx:id="height" layoutX="216.0" layoutY="89.0" text="30" />
-   <TextField fx:id="foodStatic" layoutX="217.0" layoutY="134.0" text="3" />
-   <TextField fx:id="delay" layoutX="218.0" layoutY="175.0" text="100" />
-   <Button layoutX="263.0" layoutY="266.0" mnemonicParsing="false" onAction="#onStartGameClick" text="Start game" />
-   <Button layoutX="280.0" layoutY="312.0" mnemonicParsing="false" onAction="#onBackClick" text="Back" />
-   <TextField fx:id="gameTitle" layoutX="218.0" layoutY="215.0" text="game_title" />
+   <TextField fx:id="width" alignment="CENTER" layoutX="215.0" layoutY="48.0" text="40" />
+   <TextField fx:id="height" alignment="CENTER" layoutX="216.0" layoutY="89.0" text="30" />
+   <TextField fx:id="foodStatic" alignment="CENTER" layoutX="217.0" layoutY="134.0" text="3" />
+   <TextField fx:id="delay" alignment="CENTER" layoutX="218.0" layoutY="175.0" text="100" />
+   <Button layoutX="263.0" layoutY="298.0" mnemonicParsing="false" onAction="#onStartGameClick" text="Start game" />
+   <Button layoutX="280.0" layoutY="337.0" mnemonicParsing="false" onAction="#onBackClick" text="Back" />
+   <TextField fx:id="gameTitle" alignment="CENTER" layoutX="218.0" layoutY="215.0" promptText="game_title" />
+   <TextField fx:id="playerName" alignment="CENTER" layoutX="219.0" layoutY="253.0" promptText="nickname" />
 </AnchorPane>

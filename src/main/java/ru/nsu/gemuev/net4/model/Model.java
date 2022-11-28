@@ -9,14 +9,11 @@ import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
 import ru.nsu.gemuev.net4.model.communication.*;
 import ru.nsu.gemuev.net4.model.game.Direction;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
-import ru.nsu.gemuev.net4.model.game.GameState;
-import ru.nsu.gemuev.net4.model.game.Player;
 import ru.nsu.gemuev.net4.model.ports.GameMessageReceiver;
 import ru.nsu.gemuev.net4.model.ports.GameMessageSender;
 import ru.nsu.gemuev.net4.net.MulticastReceiver;
 import ru.nsu.gemuev.net4.net.UdpSenderReceiver;
 
-import java.net.InetAddress;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -31,11 +28,9 @@ public class Model {
     private final GameMessageReceiver receiver;
     private final PseudoReliableSender pseudoReliableSender;
     private final Thread multicastListenerThread;
-    //private Thread joinGameAckListenerThread;
     private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(1);
     private ModelState currentState;
     private CommunicationModel communicationModel;
-    private GameConfig gameConfig;
     private final EventBus eventBus;
 
     @Inject
@@ -65,18 +60,10 @@ public class Model {
         }
         currentState = ModelState.NO_GAME;
 
-        Player player = new Player(playerName, 0);
-        Node node = new Node(player, InetAddress.getLocalHost(), 0, NodeRole.MASTER, 0);
-        GameState initGameState = new GameState(gameConfig);
-        if(!initGameState.addPlayer(player)){
-            // TODO что-то показать
-            return;
-        }
-        communicationModel = new CommunicationModelBuilder(receiver, sender)
-                .createGame(gameName, playerName, gameConfig);
+        communicationModel = new CommunicationModelBuilder(receiver, sender, playerName)
+                .createGame(gameName, gameConfig);
         currentState = ModelState.GAME_RUNNING;
         eventBus.post(new ShowGameViewEvent());
-        System.out.println("here");
     }
 
     public synchronized void steer(@NonNull Direction direction) {
@@ -107,8 +94,8 @@ public class Model {
         opt.ifPresent(entry -> {
             pseudoReliableSender.clear();
             try {
-                communicationModel = new CommunicationModelBuilder(receiver, sender)
-                        .joinToGame(playerName, NodeRole.NORMAL, entry);
+                communicationModel = new CommunicationModelBuilder(receiver, sender, playerName)
+                        .joinToGame(NodeRole.NORMAL, entry);
                 currentState = ModelState.GAME_RUNNING;
                 eventBus.post(new ShowGameViewEvent());
             } catch (JoinGameException e) {

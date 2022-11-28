@@ -4,7 +4,6 @@ import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
-import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowMainViewEvent;
 import ru.nsu.gemuev.net4.model.Model;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
@@ -14,6 +13,8 @@ public class ConfigViewController {
     private final EventBus eventBus;
     private final Model model;
 
+    @FXML
+    private TextField playerName;
     @FXML
     private TextField gameTitle;
     @FXML
@@ -39,7 +40,7 @@ public class ConfigViewController {
                 Integer.parseInt(foodStatic.getText()),
                 Integer.parseInt(delay.getText()));
 
-        model.newGame(gameConfig, "game name", "player name");
+        model.newGame(gameConfig, playerName.getText(), gameTitle.getText());
     }
 
     @FXML
