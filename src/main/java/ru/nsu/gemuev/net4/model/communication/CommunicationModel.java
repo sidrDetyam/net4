@@ -1,11 +1,9 @@
 package ru.nsu.gemuev.net4.model.communication;
 
-import com.google.common.eventbus.EventBus;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.Range;
-import ru.nsu.gemuev.net4.controllers.uievents.GameStateChanged;
 import ru.nsu.gemuev.net4.mappers.MessageMapper;
 import ru.nsu.gemuev.net4.model.game.Direction;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
@@ -13,7 +11,6 @@ import ru.nsu.gemuev.net4.model.game.GameState;
 import ru.nsu.gemuev.net4.model.game.Player;
 import ru.nsu.gemuev.net4.model.ports.GameMessageReceiver;
 import ru.nsu.gemuev.net4.model.ports.GameMessageSender;
-import ru.nsu.gemuev.net4.util.DIContainer;
 
 import java.net.InetAddress;
 import java.time.Instant;
@@ -21,10 +18,13 @@ import java.util.Collection;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 @Log4j2
 public class CommunicationModel {
-    private final EventBus eventBus;
+    private final InetAddress multicastAddress;
+    private final int multicastPort;
+    private final Consumer<? super GameState> onGameStateChange;
     private final Thread listenerThread;
     private final PseudoReliableSender sender;
     private final NodesRepository nodes = new NodesRepository();
@@ -39,13 +39,18 @@ public class CommunicationModel {
         return currentGameState.getGameConfig();
     }
 
-    CommunicationModel(@NonNull GameMessageReceiver receiver,
+    CommunicationModel(@NonNull InetAddress multicastAddress,
+                       @Range(from = 0, to = 65536) int multicastPort,
+                       @NonNull Consumer<? super GameState> onGameStateChange,
+                       @NonNull GameMessageReceiver receiver,
                        @NonNull GameMessageSender sender,
                        @NonNull Node master,
                        @NonNull Node me,
                        @NonNull GameConfig gameConfig,
                        @NonNull String gameName) {
-        this.eventBus = DIContainer.getInjector().getInstance(EventBus.class);
+        this.multicastAddress = multicastAddress;
+        this.multicastPort = multicastPort;
+        this.onGameStateChange = onGameStateChange;
         this.gameName = gameName;
         listenerThread = new Thread(new MessagesListener(receiver, new GameMessageHandler(this)));
         listenerThread.start();
@@ -146,7 +151,7 @@ public class CommunicationModel {
     private synchronized void nextState() {
         if (isMyRole(NodeRole.MASTER)) {
             currentGameState.nextState();
-            eventBus.post(new GameStateChanged(currentGameState));
+            onGameStateChange.accept(currentGameState);
             nodes.getNodes().forEach(node -> {
                 if (node.getPlayerId() != myId) {
                     sender.sendAsync(node.getAddress(), node.getPort(),
@@ -158,10 +163,8 @@ public class CommunicationModel {
 
     @SneakyThrows
     private synchronized void announceGame() {
-        //System.out.println(nodes.getNodes());
-        System.out.println(currentGameState.getPlayers());
         if (isMyRole(NodeRole.MASTER)) {
-            sender.sendAsync(InetAddress.getByName("239.192.0.4"), 9193,
+            sender.sendAsync(multicastAddress, multicastPort,
                     MessageMapper.announcementOf(currentGameState.getGameConfig(), nodes.getNodes(),
                             gameName,
                             true,
@@ -201,7 +204,7 @@ public class CommunicationModel {
             nodes.delete(master);
             nodes.addNode(new Node(master.getPlayer(), senderAddress, senderPort, NodeRole.MASTER, Instant.now().toEpochMilli()));
             sender.sendAsync(senderAddress, senderPort, MessageMapper.ackOf(node.getPlayerId(), messageSeq), false);
-            eventBus.post(new GameStateChanged(currentGameState));
+            onGameStateChange.accept(currentGameState);
         }
     }
 

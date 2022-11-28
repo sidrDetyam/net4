@@ -5,15 +5,23 @@ import com.google.inject.Inject;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
+import ru.nsu.gemuev.net4.controllers.uievents.GameStateChanged;
+import ru.nsu.gemuev.net4.controllers.uievents.ListOfAnnGamesChangedEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
 import ru.nsu.gemuev.net4.model.communication.*;
 import ru.nsu.gemuev.net4.model.game.Direction;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
+import ru.nsu.gemuev.net4.model.game.GameState;
 import ru.nsu.gemuev.net4.model.ports.GameMessageReceiver;
 import ru.nsu.gemuev.net4.model.ports.GameMessageSender;
 import ru.nsu.gemuev.net4.net.MulticastReceiver;
 import ru.nsu.gemuev.net4.net.UdpSenderReceiver;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -22,8 +30,18 @@ import java.util.concurrent.TimeUnit;
 public class Model {
 
     private static final long ANNOUNCEMENT_GAME_TTL = 2000;
+    private static final InetAddress mAddress;
+    private static final int mPort = 9193;
 
-    private final AnnouncementGamesRepository gamesRepository;
+    static {
+        try {
+            mAddress = InetAddress.getByName("239.192.0.4");
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private final Map<AnnouncementGame, Long> gamesRepository = new HashMap<>();
     private final GameMessageSender sender;
     private final GameMessageReceiver receiver;
     private final PseudoReliableSender pseudoReliableSender;
@@ -38,7 +56,6 @@ public class Model {
                  @NonNull UdpSenderReceiver messageSender,
                  @NonNull UdpSenderReceiver messageReceiver,
                  @NonNull EventBus eventBus) {
-        gamesRepository = new AnnouncementGamesRepository(eventBus);
         this.eventBus = eventBus;
         this.receiver = messageReceiver;
         this.sender = messageSender;
@@ -47,64 +64,72 @@ public class Model {
         MessageHandler handler = new AnnouncementMessageHandler(this);
         multicastListenerThread = new Thread(new MessagesListener(multicastReceiver, handler));
         multicastListenerThread.start();
-        scheduler.scheduleAtFixedRate(() -> gamesRepository.deleteExpiredGames(ANNOUNCEMENT_GAME_TTL),
+        scheduler.scheduleAtFixedRate(this::deleteExpiredGames,
                 0, ANNOUNCEMENT_GAME_TTL / 2, TimeUnit.MILLISECONDS);
+    }
+
+    public synchronized void deleteExpiredGames() {
+        long instant = Instant.now().toEpochMilli();
+        gamesRepository.entrySet().removeIf(entry -> instant - entry.getValue() > ANNOUNCEMENT_GAME_TTL);
+        eventBus.post(new ListOfAnnGamesChangedEvent(gamesRepository.keySet()));
     }
 
     @SneakyThrows
     public synchronized void newGame(@NonNull GameConfig gameConfig,
                                      @NonNull String playerName,
                                      @NonNull String gameName) {
-        if(currentState == ModelState.GAME_RUNNING){
+        if (currentState == ModelState.GAME_RUNNING) {
             communicationModel.leave();
         }
         currentState = ModelState.NO_GAME;
 
-        communicationModel = new CommunicationModelBuilder(receiver, sender, playerName)
+        communicationModel = new CommunicationModelBuilder(receiver, sender, playerName, mAddress, mPort, this::gameStateChanged)
                 .createGame(gameName, gameConfig);
         currentState = ModelState.GAME_RUNNING;
         eventBus.post(new ShowGameViewEvent());
     }
 
+    public synchronized void gameStateChanged(@NonNull GameState newState) {
+        eventBus.post(new GameStateChanged(newState));
+    }
+
     public synchronized void steer(@NonNull Direction direction) {
-        if(currentState == ModelState.GAME_RUNNING) {
+        if (currentState == ModelState.GAME_RUNNING) {
             communicationModel.steer(direction);
         }
     }
 
     public synchronized void stopGame() {
-        if(currentState == ModelState.GAME_RUNNING){
+        if (currentState == ModelState.GAME_RUNNING) {
             communicationModel.leave();
         }
         currentState = ModelState.NO_GAME;
     }
 
-    public synchronized void exit(){
+    public synchronized void exit() {
         stopGame();
         multicastListenerThread.interrupt();
         scheduler.shutdown();
     }
 
-    public synchronized void joinGame(@NonNull String playerName) {
-        var opt = gamesRepository.getRepository().keySet().stream().findFirst();
-        if(opt.isEmpty()){
-            // TODO
-            return;
-        }
-        opt.ifPresent(entry -> {
-            pseudoReliableSender.clear();
-            try {
-                communicationModel = new CommunicationModelBuilder(receiver, sender, playerName)
-                        .joinToGame(NodeRole.NORMAL, entry);
-                currentState = ModelState.GAME_RUNNING;
-                eventBus.post(new ShowGameViewEvent());
-            } catch (JoinGameException e) {
-                log.error(e);
+    public void joinGame(@NonNull AnnouncementGame game, @NonNull String playerName) {
+        scheduler.schedule(() -> {
+            synchronized (this) {
+                pseudoReliableSender.clear();
+                try {
+                    communicationModel = new CommunicationModelBuilder(receiver, sender, playerName, mAddress, mPort, this::gameStateChanged)
+                            .joinToGame(NodeRole.NORMAL, game);
+                    currentState = ModelState.GAME_RUNNING;
+                    eventBus.post(new ShowGameViewEvent());
+                } catch (JoinGameException e) {
+                    log.error(e);
+                }
             }
-        });
+        }, 0, TimeUnit.MILLISECONDS);
     }
 
     public synchronized void announcementGameMessage(@NonNull AnnouncementGame game) {
-        gamesRepository.addGame(game);
+        gamesRepository.put(game, Instant.now().toEpochMilli());
+        eventBus.post(new ListOfAnnGamesChangedEvent(gamesRepository.keySet()));
     }
 }

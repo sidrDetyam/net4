@@ -14,11 +14,9 @@ import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TextField;
 import lombok.NonNull;
 import ru.nsu.gemuev.net4.controllers.uievents.ListOfAnnGamesChangedEvent;
-import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowMainViewEvent;
 import ru.nsu.gemuev.net4.model.AnnouncementGame;
 import ru.nsu.gemuev.net4.model.Model;
-import ru.nsu.gemuev.net4.util.DIContainer;
 
 import java.net.URL;
 import java.util.List;
@@ -26,21 +24,25 @@ import java.util.ResourceBundle;
 
 public class GamesListViewController implements Initializable {
 
+    private final Model model;
     private final EventBus eventBus;
+
     @FXML
     private TextField playerNameField;
     @FXML
     private ListView<AnnouncementGame> gamesList;
 
     @Inject
-    public GamesListViewController(@NonNull EventBus eventBus){
+    public GamesListViewController(@NonNull Model model, @NonNull EventBus eventBus) {
         this.eventBus = eventBus;
+        this.model = model;
     }
 
-
     @Subscribe
-    public void listOfGamesChanged(ListOfAnnGamesChangedEvent e){
+    @SuppressWarnings("unused")
+    public void listOfGamesChanged(ListOfAnnGamesChangedEvent e) {
         Platform.runLater(() -> {
+            gamesList.getItems().clear();
             ObservableList<AnnouncementGame> items = FXCollections
                     .observableArrayList(List.copyOf(e.getGames()));
             gamesList.setItems(items);
@@ -48,7 +50,7 @@ public class GamesListViewController implements Initializable {
     }
 
     @FXML
-    protected void onBackPressed(){
+    protected void onBackPressed() {
         eventBus.post(new ShowMainViewEvent());
     }
 
@@ -56,17 +58,10 @@ public class GamesListViewController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         MultipleSelectionModel<AnnouncementGame> selectionModel = gamesList.getSelectionModel();
         selectionModel.setSelectionMode(SelectionMode.SINGLE);
-        selectionModel.selectedItemProperty().addListener((__, ___, selectedPlace) -> {
-            if (selectedPlace != null) {
-                System.out.println(selectedPlace);
-                //selectionModel.select(-1);
+        selectionModel.selectedItemProperty().addListener((__, ___, selectedGame) -> {
+            if (selectedGame != null) {
+                model.joinGame(selectedGame, playerNameField.getText());
             }
         });
-    }
-
-    @FXML
-    public void onJoinClicked() {
-        Model model = DIContainer.getInjector().getInstance(Model.class);
-        model.joinGame(playerNameField.getText());
     }
 }

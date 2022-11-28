@@ -110,12 +110,12 @@ public class GameViewController implements Initializable {
             topList.getItems().addAll(newState.getGameState().getPlayers().stream()
                     .sorted(Comparator.comparingInt(Player::getScore).reversed())
                     .toList());
-            drawBackground(newState.getGameState());
+            render(newState.getGameState());
         });
     }
 
 
-    private void drawBackground(@NonNull GameState gameState) {
+    private void render(@NonNull GameState gameState) {
         var gc = canvas.getGraphicsContext2D();
         final int sizeX = gameState.getGameConfig().width();
         final int sizeY = gameState.getGameConfig().height();

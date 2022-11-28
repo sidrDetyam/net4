@@ -4,6 +4,7 @@ import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
+import lombok.NonNull;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowMainViewEvent;
 import ru.nsu.gemuev.net4.model.Model;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
@@ -27,7 +28,7 @@ public class ConfigViewController {
     private TextField delay;
 
     @Inject
-    public ConfigViewController(EventBus eventBus, Model model){
+    public ConfigViewController(@NonNull EventBus eventBus, @NonNull Model model){
         this.eventBus = eventBus;
         this.model = model;
     }

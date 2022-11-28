@@ -65,8 +65,8 @@ public class DIModule extends AbstractModule {
 
     @Provides
     @Singleton
-    GamesListViewController getGamesListViewController(EventBus eventBus){
-        var controller = new GamesListViewController(eventBus);
+    GamesListViewController getGamesListViewController(Model model, EventBus eventBus){
+        var controller = new GamesListViewController(model, eventBus);
         eventBus.register(controller);
         return controller;
     }

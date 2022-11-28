@@ -8,6 +8,7 @@ import ru.nsu.gemuev.net4.SnakesProto;
 import ru.nsu.gemuev.net4.mappers.MessageMapper;
 import ru.nsu.gemuev.net4.model.AnnouncementGame;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
+import ru.nsu.gemuev.net4.model.game.GameState;
 import ru.nsu.gemuev.net4.model.game.Player;
 import ru.nsu.gemuev.net4.model.ports.GameMessageReceiver;
 import ru.nsu.gemuev.net4.model.ports.GameMessageSender;
@@ -16,6 +17,7 @@ import ru.nsu.gemuev.net4.model.ports.Message;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.time.Instant;
+import java.util.function.Consumer;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -27,6 +29,9 @@ public class CommunicationModelBuilder {
     private final GameMessageReceiver receiver;
     private final GameMessageSender sender;
     private final String playerName;
+    private final InetAddress mAddress;
+    private final int mPort;
+    private final Consumer<? super GameState> onStateChanged;
 
     public CommunicationModel joinToGame(NodeRole role,
                                          @NonNull AnnouncementGame announcementGame) throws JoinGameException {
@@ -47,7 +52,7 @@ public class CommunicationModelBuilder {
                                 response.getAddress(), response.getPort(), NodeRole.MASTER, instant);
                         Node me = new Node(new Player("", response.getMessage().getReceiverId()),
                                 InetAddress.getLocalHost(), 0, role, instant);
-                        return new CommunicationModel(receiver, sender,
+                        return new CommunicationModel(mAddress, mPort, onStateChanged, receiver, sender,
                                 master, me, announcementGame.gameConfig(), announcementGame.gameName());
                     }
 
@@ -76,7 +81,7 @@ public class CommunicationModelBuilder {
                                          @NonNull GameConfig gameConfig){
         Node master = new Node(new Player(playerName, 0),
                 InetAddress.getLocalHost(), 0, NodeRole.MASTER, 0);
-        return new CommunicationModel(receiver, sender,
+        return new CommunicationModel(mAddress, mPort, onStateChanged, receiver, sender,
                 master, master, gameConfig, gameName);
     }
 }
