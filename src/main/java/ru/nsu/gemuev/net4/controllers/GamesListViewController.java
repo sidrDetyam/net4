@@ -8,10 +8,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.ListView;
-import javafx.scene.control.MultipleSelectionModel;
-import javafx.scene.control.SelectionMode;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import lombok.NonNull;
 import ru.nsu.gemuev.net4.controllers.uievents.ListOfAnnGamesChangedEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowMainViewEvent;
@@ -27,6 +24,8 @@ public class GamesListViewController implements Initializable {
     private final Model model;
     private final EventBus eventBus;
 
+    @FXML
+    private CheckBox viewerCheckbox;
     @FXML
     private TextField playerNameField;
     @FXML
@@ -60,8 +59,13 @@ public class GamesListViewController implements Initializable {
         selectionModel.setSelectionMode(SelectionMode.SINGLE);
         selectionModel.selectedItemProperty().addListener((__, ___, selectedGame) -> {
             if (selectedGame != null) {
-                model.joinGame(selectedGame, playerNameField.getText());
+                model.joinGame(selectedGame, playerNameField.getText(), viewerCheckbox.isSelected());
             }
         });
+    }
+
+    @FXML
+    public void onDiscoverClicked() {
+        model.discoverGames();
     }
 }

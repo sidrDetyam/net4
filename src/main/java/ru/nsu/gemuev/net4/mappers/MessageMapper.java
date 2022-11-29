@@ -2,8 +2,8 @@ package ru.nsu.gemuev.net4.mappers;
 
 import lombok.NonNull;
 import ru.nsu.gemuev.net4.SnakesProto;
-import ru.nsu.gemuev.net4.model.communication.NodeRole;
 import ru.nsu.gemuev.net4.model.communication.Node;
+import ru.nsu.gemuev.net4.model.communication.NodeRole;
 import ru.nsu.gemuev.net4.model.game.Direction;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
 import ru.nsu.gemuev.net4.model.game.GameState;
@@ -120,6 +120,14 @@ public class MessageMapper {
                 .build();
         return SnakesProto.GameMessage.newBuilder()
                 .setError(msg)
+                .setMsgSeq(msgSeq)
+                .build();
+    }
+
+    public static SnakesProto.GameMessage discoverOf(long msgSeq){
+        var msg = SnakesProto.GameMessage.DiscoverMsg.getDefaultInstance();
+        return SnakesProto.GameMessage.newBuilder()
+                .setDiscover(msg)
                 .setMsgSeq(msgSeq)
                 .build();
     }

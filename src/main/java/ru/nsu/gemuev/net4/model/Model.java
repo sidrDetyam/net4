@@ -8,15 +8,15 @@ import lombok.extern.log4j.Log4j2;
 import ru.nsu.gemuev.net4.controllers.uievents.GameStateChanged;
 import ru.nsu.gemuev.net4.controllers.uievents.ListOfAnnGamesChangedEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
+import ru.nsu.gemuev.net4.mappers.MessageMapper;
 import ru.nsu.gemuev.net4.model.communication.*;
 import ru.nsu.gemuev.net4.model.game.Direction;
 import ru.nsu.gemuev.net4.model.game.GameConfig;
 import ru.nsu.gemuev.net4.model.game.GameState;
-import ru.nsu.gemuev.net4.model.ports.GameMessageReceiver;
-import ru.nsu.gemuev.net4.model.ports.GameMessageSender;
+import ru.nsu.gemuev.net4.model.ports.*;
 import ru.nsu.gemuev.net4.net.MulticastReceiver;
-import ru.nsu.gemuev.net4.net.UdpSenderReceiver;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Instant;
@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 
 @Log4j2
 public class Model {
-
     private static final long ANNOUNCEMENT_GAME_TTL = 2000;
     private static final InetAddress mAddress;
     private static final int mPort = 9193;
@@ -43,9 +42,9 @@ public class Model {
 
     private final Map<AnnouncementGame, Long> gamesRepository = new HashMap<>();
     private final GameMessageSender sender;
-    private final GameMessageReceiver receiver;
-    private final PseudoReliableSender pseudoReliableSender;
+    private final SenderReceiverFactoryCreator senderReceiverFactoryCreator;
     private final Thread multicastListenerThread;
+    private final Thread unicastListenerThread;
     private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(1);
     private ModelState currentState;
     private CommunicationModel communicationModel;
@@ -53,17 +52,24 @@ public class Model {
 
     @Inject
     public Model(@NonNull MulticastReceiver multicastReceiver,
-                 @NonNull UdpSenderReceiver messageSender,
-                 @NonNull UdpSenderReceiver messageReceiver,
+                 @NonNull SenderReceiverFactoryCreator senderReceiverFactoryCreator,
                  @NonNull EventBus eventBus) {
         this.eventBus = eventBus;
-        this.receiver = messageReceiver;
-        this.sender = messageSender;
-        pseudoReliableSender = new PseudoReliableSender(messageSender);
+        this.senderReceiverFactoryCreator = senderReceiverFactoryCreator;
+        SenderReceiverFactory factory = senderReceiverFactoryCreator.newFactory();
+        sender = factory.createSender();
+        GameMessageReceiver receiver = factory.createReceiver();
+
         // TODO утечка this
-        MessageHandler handler = new AnnouncementMessageHandler(this);
-        multicastListenerThread = new Thread(new MessagesListener(multicastReceiver, handler));
+        multicastListenerThread = new Thread(new MessagesListener(
+                multicastReceiver,
+                new AnnouncementMessageHandler(this)));
         multicastListenerThread.start();
+        unicastListenerThread = new Thread(new MessagesListener(
+                receiver,
+                new AnnouncementMessageHandler(this)));
+        unicastListenerThread.start();
+
         scheduler.scheduleAtFixedRate(this::deleteExpiredGames,
                 0, ANNOUNCEMENT_GAME_TTL / 2, TimeUnit.MILLISECONDS);
     }
@@ -83,7 +89,8 @@ public class Model {
         }
         currentState = ModelState.NO_GAME;
 
-        communicationModel = new CommunicationModelBuilder(receiver, sender, playerName, mAddress, mPort, this::gameStateChanged)
+        communicationModel = new CommunicationModelBuilder(senderReceiverFactoryCreator.newFactory(),
+                playerName, mAddress, mPort, this::gameStateChanged)
                 .createGame(gameName, gameConfig);
         currentState = ModelState.GAME_RUNNING;
         eventBus.post(new ShowGameViewEvent());
@@ -109,20 +116,33 @@ public class Model {
     public synchronized void exit() {
         stopGame();
         multicastListenerThread.interrupt();
+        unicastListenerThread.interrupt();
         scheduler.shutdown();
     }
 
-    public void joinGame(@NonNull AnnouncementGame game, @NonNull String playerName) {
+    public void joinGame(@NonNull AnnouncementGame game, @NonNull String playerName, boolean isOnlyView) {
         scheduler.schedule(() -> {
             synchronized (this) {
-                pseudoReliableSender.clear();
                 try {
-                    communicationModel = new CommunicationModelBuilder(receiver, sender, playerName, mAddress, mPort, this::gameStateChanged)
-                            .joinToGame(NodeRole.NORMAL, game);
+                    communicationModel = new CommunicationModelBuilder(senderReceiverFactoryCreator.newFactory(),
+                            playerName, mAddress, mPort, this::gameStateChanged)
+                            .joinToGame(isOnlyView? NodeRole.VIEWER : NodeRole.NORMAL, game);
                     currentState = ModelState.GAME_RUNNING;
                     eventBus.post(new ShowGameViewEvent());
                 } catch (JoinGameException e) {
                     log.error(e);
+                }
+            }
+        }, 0, TimeUnit.MILLISECONDS);
+    }
+
+    public void discoverGames(){
+        scheduler.schedule(() -> {
+            synchronized (this){
+                try {
+                    sender.sendGameMessage(new Message(MessageMapper.discoverOf(0), mAddress, mPort));
+                } catch (IOException e) {
+                    log.error("Can`t send discover " + e);
                 }
             }
         }, 0, TimeUnit.MILLISECONDS);

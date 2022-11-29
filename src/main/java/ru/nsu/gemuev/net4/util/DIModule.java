@@ -7,9 +7,10 @@ import com.google.inject.Singleton;
 import lombok.SneakyThrows;
 import ru.nsu.gemuev.net4.controllers.*;
 import ru.nsu.gemuev.net4.model.Model;
+import ru.nsu.gemuev.net4.model.ports.SenderReceiverFactoryCreator;
 import ru.nsu.gemuev.net4.net.MulticastReceiver;
 import ru.nsu.gemuev.net4.net.NetInterfaceChecker;
-import ru.nsu.gemuev.net4.net.UdpSenderReceiver;
+import ru.nsu.gemuev.net4.net.UdpSenderReceiverFactoryCreator;
 
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
@@ -51,8 +52,8 @@ public class DIModule extends AbstractModule {
     @Provides
     @Singleton
     @SneakyThrows
-    Model getModel(MulticastReceiver multicastReceiver, UdpSenderReceiver udpSenderReceiver, EventBus eventBus){
-        return new Model(multicastReceiver, udpSenderReceiver, udpSenderReceiver, eventBus);
+    Model getModel(MulticastReceiver multicastReceiver, SenderReceiverFactoryCreator creator, EventBus eventBus){
+        return new Model(multicastReceiver, creator, eventBus);
     }
 
     @Provides
@@ -89,7 +90,7 @@ public class DIModule extends AbstractModule {
     @Provides
     @SneakyThrows
     @Singleton
-    UdpSenderReceiver getUdpSenderReceiver(){
-        return new UdpSenderReceiver();
+    SenderReceiverFactoryCreator getSenderReceiverFactoryCreator(){
+        return new UdpSenderReceiverFactoryCreator();
     }
 }

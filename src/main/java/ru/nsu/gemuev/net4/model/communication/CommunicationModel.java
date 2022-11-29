@@ -225,7 +225,7 @@ public class CommunicationModel {
         if (isMyRole(NodeRole.MASTER)) {
             Player player = new Player(name, idGenerator.nextId());
             Node node = new Node(player, address, port, role, Instant.now().toEpochMilli());
-            if(currentGameState.addPlayer(player)){
+            if(role == NodeRole.VIEWER || currentGameState.addPlayer(player)){
                 if (role != NodeRole.VIEWER) {
                     if (nodes.findNodeByRole(NodeRole.DEPUTY).isEmpty()) {
                         node.setRole(NodeRole.DEPUTY);

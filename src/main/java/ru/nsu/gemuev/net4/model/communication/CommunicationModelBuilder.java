@@ -13,6 +13,7 @@ import ru.nsu.gemuev.net4.model.game.Player;
 import ru.nsu.gemuev.net4.model.ports.GameMessageReceiver;
 import ru.nsu.gemuev.net4.model.ports.GameMessageSender;
 import ru.nsu.gemuev.net4.model.ports.Message;
+import ru.nsu.gemuev.net4.model.ports.SenderReceiverFactory;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -22,24 +23,26 @@ import java.util.function.Consumer;
 @Log4j2
 @RequiredArgsConstructor
 public class CommunicationModelBuilder {
-    private static final int COUNT_OF_ATTEMPTS = 100500;
+    private static final int COUNT_OF_ATTEMPTS = 5;
     private static final int TIMEOUT = 500;
     private static final int BUFFER_SIZE = 10000;
 
-    private final GameMessageReceiver receiver;
-    private final GameMessageSender sender;
+    private final SenderReceiverFactory factory;
     private final String playerName;
     private final InetAddress mAddress;
     private final int mPort;
     private final Consumer<? super GameState> onStateChanged;
 
-    public CommunicationModel joinToGame(NodeRole role,
+    public CommunicationModel joinToGame(@NonNull NodeRole role,
                                          @NonNull AnnouncementGame announcementGame) throws JoinGameException {
-        try {
-            SnakesProto.GameMessage joinMsg = MessageMapper
-                    .joinOf(announcementGame.gameName(), playerName, role, 0);
-            Message message = new Message(joinMsg, announcementGame.senderAddress(), announcementGame.senderPort());
-            byte[] buffer = new byte[BUFFER_SIZE];
+        SnakesProto.GameMessage joinMsg = MessageMapper
+                .joinOf(announcementGame.gameName(), playerName, role, 0);
+        Message message = new Message(joinMsg, announcementGame.senderAddress(), announcementGame.senderPort());
+        byte[] buffer = new byte[BUFFER_SIZE];
+        GameMessageSender sender = factory.createSender();
+        GameMessageReceiver receiver = factory.createReceiver();
+
+        try{
             for (int i = 0; i < COUNT_OF_ATTEMPTS; ++i) {
                 try {
                     receiver.setSoTimeout(TIMEOUT);
@@ -59,6 +62,8 @@ public class CommunicationModelBuilder {
                     if(response.getMessage().hasError()){
                         throw new JoinGameException(response.getMessage().getError().toString());
                     }
+
+                    throw new JoinGameException("Unexpected message " + response.getMessage());
                 }
                 catch (IOException exception){
                     log.error(exception);
@@ -81,7 +86,7 @@ public class CommunicationModelBuilder {
                                          @NonNull GameConfig gameConfig){
         Node master = new Node(new Player(playerName, 0),
                 InetAddress.getLocalHost(), 0, NodeRole.MASTER, 0);
-        return new CommunicationModel(mAddress, mPort, onStateChanged, receiver, sender,
+        return new CommunicationModel(mAddress, mPort, onStateChanged, factory.createReceiver(), factory.createSender(),
                 master, master, gameConfig, gameName);
     }
 }
