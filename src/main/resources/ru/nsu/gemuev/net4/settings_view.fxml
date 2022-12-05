@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.nsu.gemuev.net4.controllers.SettingsViewController">
+    <TextField fx:id="mAddressField" alignment="CENTER" layoutX="226.0" layoutY="82.0" />
+    <TextField fx:id="mAddressPort" alignment="CENTER" layoutX="226.0" layoutY="117.0" />
+    <Button layoutX="200.0" layoutY="335.0" mnemonicParsing="false" onAction="#onBackClicked" text="Back" />
+    <Button layoutX="350.0" layoutY="335.0" mnemonicParsing="false" onAction="#onAcceptClicked" text="Accept" />
+</AnchorPane>

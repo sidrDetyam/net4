@@ -5,7 +5,8 @@
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.nsu.gemuev.net4.controllers.MainViewController">
 
-   <Button layoutX="263.0" layoutY="117.0" mnemonicParsing="false" onAction="#onNewGameClick" text="New game" />
-   <Button layoutX="263.0" layoutY="174.0" mnemonicParsing="false" onAction="#onJoinClick" prefHeight="26.0" prefWidth="74.0" text="Join game" />
-   <Button layoutX="264.0" layoutY="225.0" mnemonicParsing="false" onAction="#exit" prefHeight="26.0" prefWidth="74.0" text="Exit" />
+   <Button layoutX="263.0" layoutY="114.0" mnemonicParsing="false" onAction="#onNewGameClick" text="New game" />
+   <Button layoutX="263.0" layoutY="151.0" mnemonicParsing="false" onAction="#onJoinClick" prefHeight="26.0" prefWidth="74.0" text="Join game" />
+   <Button layoutX="263.0" layoutY="300.0" mnemonicParsing="false" onAction="#exit" prefHeight="26.0" prefWidth="74.0" text="Exit" />
+   <Button layoutX="262.0" layoutY="187.0" mnemonicParsing="false" onAction="#onSettingsClicked" prefHeight="26.0" prefWidth="74.0" text="Settings" />
 </AnchorPane>

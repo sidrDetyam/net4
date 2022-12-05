@@ -5,6 +5,7 @@ import com.google.inject.Inject;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
+import org.jetbrains.annotations.Range;
 import ru.nsu.gemuev.net4.controllers.uievents.GameStateChanged;
 import ru.nsu.gemuev.net4.controllers.uievents.ListOfAnnGamesChangedEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
@@ -15,6 +16,7 @@ import ru.nsu.gemuev.net4.model.game.GameConfig;
 import ru.nsu.gemuev.net4.model.game.GameState;
 import ru.nsu.gemuev.net4.model.ports.*;
 import ru.nsu.gemuev.net4.net.MulticastReceiver;
+import ru.nsu.gemuev.net4.util.PropertyGetter;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -29,17 +31,23 @@ import java.util.concurrent.TimeUnit;
 @Log4j2
 public class Model {
     private static final long ANNOUNCEMENT_GAME_TTL = 2000;
-    private static final InetAddress mAddress;
-    private static final int mPort = 9193;
-
-    static {
+    private InetAddress mAddress;
+    private int mPort;
+    {
         try {
-            mAddress = InetAddress.getByName("239.192.0.4");
+            mAddress = InetAddress.getByName(PropertyGetter.getPropertyOrThrow("multicast_address"));
+            mPort = Integer.parseInt(PropertyGetter.getPropertyOrThrow("multicast_port"));
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
     }
 
+    public synchronized void setMulticastAddressAndPort(@NonNull InetAddress mAddress,
+                                                        @Range(from = 0, to = 65536) int mPort){
+        this.mAddress = mAddress;
+        this.mPort = mPort;
+    }
+    
     private final Map<AnnouncementGame, Long> gamesRepository = new HashMap<>();
     private final GameMessageSender sender;
     private final SenderReceiverFactoryCreator senderReceiverFactoryCreator;

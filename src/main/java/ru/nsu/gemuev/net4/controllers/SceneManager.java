@@ -10,10 +10,7 @@ import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
 import ru.nsu.gemuev.net4.Main;
-import ru.nsu.gemuev.net4.controllers.uievents.ShowConfigViewEvent;
-import ru.nsu.gemuev.net4.controllers.uievents.ShowGameViewEvent;
-import ru.nsu.gemuev.net4.controllers.uievents.ShowGamesList;
-import ru.nsu.gemuev.net4.controllers.uievents.ShowMainViewEvent;
+import ru.nsu.gemuev.net4.controllers.uievents.*;
 import ru.nsu.gemuev.net4.util.DIContainer;
 
 import java.io.IOException;
@@ -27,6 +24,7 @@ public class SceneManager {
     private final Scene configScene;
     private final Scene gameScene;
     private final Scene gamesListScene;
+    private final Scene settingsScene;
 
     private static Parent loadFXML(@NonNull String name) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource(name));
@@ -40,7 +38,7 @@ public class SceneManager {
             mainScene = new Scene(loadFXML("main_view.fxml"), 600, 400);
             configScene = new Scene(loadFXML("config_view.fxml"), 600, 400);
             gamesListScene = new Scene(loadFXML("game_list_view.fxml"), 600, 400);
-
+            settingsScene = new Scene(loadFXML("settings_view.fxml"), 600, 400);
         } catch (Throwable e) {
             log.error("Ui init fail " + e);
             throw new RuntimeException("Ui init fail"  + e);
@@ -65,5 +63,10 @@ public class SceneManager {
     @Subscribe
     public void showGamesList(ShowGamesList e){
         Platform.runLater(() -> stage.setScene(gamesListScene));
+    }
+
+    @Subscribe
+    public void showSettings(ShowSettingsView e){
+        Platform.runLater(() -> stage.setScene(settingsScene));
     }
 }

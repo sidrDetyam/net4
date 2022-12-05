@@ -12,6 +12,7 @@ import ru.nsu.gemuev.net4.net.MulticastReceiver;
 import ru.nsu.gemuev.net4.net.NetInterfaceChecker;
 import ru.nsu.gemuev.net4.net.UdpSenderReceiverFactoryCreator;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketAddress;
@@ -48,6 +49,13 @@ public class DIModule extends AbstractModule {
         return controller;
     }
 
+    @Provides
+    @Singleton
+    SettingsViewController getSettingsViewController(EventBus eventBus, Model model){
+        var controller = new SettingsViewController(model, eventBus);
+        eventBus.register(controller);
+        return controller;
+    }
 
     @Provides
     @Singleton
@@ -78,13 +86,14 @@ public class DIModule extends AbstractModule {
     MulticastReceiver getMulticastGameEventListener() {
         NetworkInterface networkInterface = NetInterfaceChecker.findAnyUpNetworkInterface(false)
                 .orElse(NetworkInterface.getByName("loopback"));
-        final int port = 9193;
-        SocketAddress socketAddress = new InetSocketAddress("239.192.0.4", port);
+        final int mPort = Integer.parseInt(PropertyGetter.getPropertyOrThrow("multicast_port"));
+        InetAddress mAddress = InetAddress.getByName(PropertyGetter.getPropertyOrThrow("multicast_address"));
+        SocketAddress socketAddress = new InetSocketAddress(mAddress, mPort);
 
         return new MulticastReceiver(
                 socketAddress,
                 networkInterface,
-                port);
+                mPort);
     }
 
     @Provides

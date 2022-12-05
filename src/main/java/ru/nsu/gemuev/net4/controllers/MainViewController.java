@@ -3,10 +3,12 @@ package ru.nsu.gemuev.net4.controllers;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import lombok.NonNull;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowConfigViewEvent;
 import ru.nsu.gemuev.net4.controllers.uievents.ShowGamesList;
+import ru.nsu.gemuev.net4.controllers.uievents.ShowSettingsView;
 import ru.nsu.gemuev.net4.model.Model;
 
 public class MainViewController {
@@ -34,5 +36,10 @@ public class MainViewController {
     public void exit() {
         model.exit();
         Platform.exit();
+    }
+
+    @FXML
+    public void onSettingsClicked() {
+        eventBus.post(new ShowSettingsView());
     }
 }

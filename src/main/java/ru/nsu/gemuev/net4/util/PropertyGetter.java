@@ -17,9 +17,9 @@ public class PropertyGetter {
 
     static {
         try(var is =
-                    Main.class.getResourceAsStream("api_keys.properties")){
+                    Main.class.getResourceAsStream("config.properties")){
             if(is == null){
-                throw new IOException("api keys not found");
+                throw new IOException("Config.properties not found");
             }
             var prop = new Properties();
             prop.load(is);
